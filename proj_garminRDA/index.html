@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Garmin 跑步数据分析看板</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- PapaParse for CSV -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- ECharts -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background-color: #f8fafc; }
+        .chart-container { min-height: 400px; width: 100%; }
+        .pb-card { transition: transform 0.2s; }
+        .pb-card:hover { transform: translateY(-4px); }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-slate-800">Garmin 跑步数据分析</h1>
+                <p class="text-slate-500 mt-1">上传您的 Activities.csv 文件，即刻洞察运动表现</p>
+            </div>
+            <div class="flex items-center gap-4">
+                <input type="file" id="csvFile" accept=".csv" class="hidden">
+                <button onclick="document.getElementById('csvFile').click()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors shadow-sm flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                    </svg>
+                    上传 CSV
+                </button>
+                <div class="flex bg-white rounded-lg p-1 shadow-sm border border-slate-200" id="filterGroup">
+                    <button onclick="updateFilter('all')" class="px-4 py-1.5 rounded-md text-sm font-medium filter-btn active bg-slate-100 text-slate-800" data-range="all">全部</button>
+                    <button onclick="updateFilter('1y')" class="px-4 py-1.5 rounded-md text-sm font-medium filter-btn text-slate-600 hover:bg-slate-50" data-range="1y">1年</button>
+                    <button onclick="updateFilter('3m')" class="px-4 py-1.5 rounded-md text-sm font-medium filter-btn text-slate-600 hover:bg-slate-50" data-range="3m">3月</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- KPI Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <p class="text-sm font-medium text-slate-500 uppercase">总跑步距离</p>
+                <div class="flex items-baseline gap-2 mt-2">
+                    <span id="kpi-distance" class="text-3xl font-bold text-slate-900">0.00</span>
+                    <span class="text-slate-500 font-medium">km</span>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <p class="text-sm font-medium text-slate-500 uppercase">跑步次数</p>
+                <div class="flex items-baseline gap-2 mt-2">
+                    <span id="kpi-count" class="text-3xl font-bold text-slate-900">0</span>
+                    <span class="text-slate-500 font-medium">次</span>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <p class="text-sm font-medium text-slate-500 uppercase">平均配速</p>
+                <div class="flex items-baseline gap-2 mt-2">
+                    <span id="kpi-pace" class="text-3xl font-bold text-slate-900">--:--</span>
+                    <span class="text-slate-500 font-medium">min/km</span>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <p class="text-sm font-medium text-slate-500 uppercase">平均心率</p>
+                <div class="flex items-baseline gap-2 mt-2">
+                    <span id="kpi-hr" class="text-3xl font-bold text-slate-900">0</span>
+                    <span class="text-slate-500 font-medium">bpm</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Heatmap Section -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-8">
+            <h3 class="text-lg font-semibold text-slate-800 mb-4">跑步频率 (近一年)</h3>
+            <div id="heatmap-chart" class="chart-container" style="min-height: 250px;"></div>
+        </div>
+
+        <!-- Secondary Charts -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <h3 class="text-lg font-semibold text-slate-800 mb-4">配速与心率趋势</h3>
+                <div id="trend-chart" class="chart-container"></div>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <h3 class="text-lg font-semibold text-slate-800 mb-4">技术指标：平均步幅</h3>
+                <div id="stride-chart" class="chart-container"></div>
+            </div>
+        </div>
+
+        <!-- PB Wall -->
+        <section class="mb-12">
+            <h3 class="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-7.714 2.143L11 21l-2.286-6.857L1 12l7.714-2.143L11 3z" />
+                </svg>
+                个人纪录墙 (PB Wall)
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="pb-card bg-gradient-to-br from-yellow-50 to-orange-50 p-6 rounded-2xl border border-yellow-100">
+                    <p class="text-yellow-700 font-bold uppercase text-xs tracking-wider">5 km</p>
+                    <h4 id="pb-5k-time" class="text-2xl font-black text-slate-800 mt-2">--:--</h4>
+                    <p id="pb-5k-date" class="text-slate-500 text-sm mt-1">尚未记录</p>
+                </div>
+                <div class="pb-card bg-gradient-to-br from-slate-50 to-slate-100 p-6 rounded-2xl border border-slate-200">
+                    <p class="text-slate-700 font-bold uppercase text-xs tracking-wider">10 km</p>
+                    <h4 id="pb-10k-time" class="text-2xl font-black text-slate-800 mt-2">--:--</h4>
+                    <p id="pb-10k-date" class="text-slate-500 text-sm mt-1">尚未记录</p>
+                </div>
+                <div class="pb-card bg-gradient-to-br from-orange-50 to-red-50 p-6 rounded-2xl border border-orange-100">
+                    <p class="text-orange-700 font-bold uppercase text-xs tracking-wider">半程马拉松 (21.0975 km)</p>
+                    <h4 id="pb-half-time" class="text-2xl font-black text-slate-800 mt-2">--:--</h4>
+                    <p id="pb-half-date" class="text-slate-500 text-sm mt-1">尚未记录</p>
+                </div>
+                <div class="pb-card bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-2xl border border-blue-100">
+                    <p class="text-blue-700 font-bold uppercase text-xs tracking-wider">全程马拉松 (42.195 km)</p>
+                    <h4 id="pb-full-time" class="text-2xl font-black text-slate-800 mt-2">--:--</h4>
+                    <p id="pb-full-date" class="text-slate-500 text-sm mt-1">尚未记录</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // Global State
+        let allActivities = [];
+        let filteredActivities = [];
+        let currentFilter = 'all';
+
+        // Chart Instances
+        let charts = {
+            heatmap: null,
+            trend: null,
+            stride: null
+        };
+
+        // Initialize Charts on Load
+        window.addEventListener('resize', () => Object.values(charts).forEach(c => c?.resize()));
+
+        document.getElementById('csvFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                encoding: "UTF-8", // Usually Garmin export is UTF-8
+                complete: function(results) {
+                    processData(results.data);
+                },
+                error: function(err) {
+                    alert("解析失败: " + err.message);
+                }
+            });
+        });
+
+        function processData(data) {
+            // Flexible column finding
+            const getCol = (names) => {
+                const keys = Object.keys(data[0] || {});
+                return names.find(n => keys.includes(n));
+            };
+
+            const colType = getCol(['活动类型', 'Activity Type']);
+            const colDate = getCol(['日期', 'Date']);
+            const colDist = getCol(['距离', 'Distance']);
+            const colPace = getCol(['平均配速', 'Avg Pace']);
+            const colHR = getCol(['平均心率', 'Avg HR']);
+            const colStride = getCol(['平均步幅', 'Avg Stride Length', '平均步长']);
+
+            allActivities = data
+                .filter(row => row[colType]?.includes('跑步') || row[colType]?.includes('Running'))
+                .map(row => {
+                    const dist = parseFloat(row[colDist]?.replace(',', '')) || 0;
+                    const paceSec = parsePace(row[colPace]);
+                    return {
+                        date: new Date(row[colDate]),
+                        dateStr: row[colDate]?.split(' ')[0],
+                        distance: dist,
+                        paceSec: paceSec,
+                        hr: parseInt(row[colHR]) || 0,
+                        stride: parseFloat(row[colStride]) || 0,
+                        raw: row
+                    };
+                })
+                .sort((a, b) => a.date - b.date);
+
+            updateFilter(currentFilter);
+            calculatePBs(allActivities); // PB should probably be from all-time record
+        }
+
+        function parsePace(paceStr) {
+            if (!paceStr || !paceStr.includes(':')) return 0;
+            const parts = paceStr.split(':');
+            if (parts.length === 2) {
+                return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+            }
+            return 0;
+        }
+
+        function formatPace(seconds) {
+            if (!seconds || isNaN(seconds)) return "--:--";
+            const m = Math.floor(seconds / 60);
+            const s = Math.round(seconds % 60);
+            return `${m}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function updateFilter(range) {
+            currentFilter = range;
+            
+            // UI Update
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active', 'bg-slate-100', 'text-slate-800');
+                btn.classList.add('text-slate-600');
+                if (btn.dataset.range === range) {
+                    btn.classList.add('active', 'bg-slate-100', 'text-slate-800');
+                    btn.classList.remove('text-slate-600');
+                }
+            });
+
+            const now = new Date();
+            if (range === 'all') {
+                filteredActivities = [...allActivities];
+            } else if (range === '1y') {
+                const oneYearAgo = new Date().setFullYear(now.getFullYear() - 1);
+                filteredActivities = allActivities.filter(a => a.date >= oneYearAgo);
+            } else if (range === '3m') {
+                const threeMonthsAgo = new Date().setMonth(now.getMonth() - 3);
+                filteredActivities = allActivities.filter(a => a.date >= threeMonthsAgo);
+            }
+
+            renderDashboard();
+        }
+
+        function renderDashboard() {
+            updateKPIs();
+            renderHeatmap();
+            renderTrendChart();
+            renderStrideChart();
+        }
+
+        function updateKPIs() {
+            const totalDist = filteredActivities.reduce((sum, a) => sum + a.distance, 0);
+            const totalCount = filteredActivities.length;
+            
+            // Weighted averages
+            const avgPace = totalDist > 0 
+                ? filteredActivities.reduce((sum, a) => sum + (a.paceSec * a.distance), 0) / totalDist 
+                : 0;
+            const avgHR = totalDist > 0 
+                ? filteredActivities.reduce((sum, a) => sum + (a.hr * a.distance), 0) / totalDist 
+                : 0;
+
+            document.getElementById('kpi-distance').innerText = totalDist.toFixed(2);
+            document.getElementById('kpi-count').innerText = totalCount;
+            document.getElementById('kpi-pace').innerText = formatPace(avgPace);
+            document.getElementById('kpi-hr').innerText = Math.round(avgHR);
+        }
+
+        function calculatePBs(activities) {
+            const distances = [
+                { id: '5k', target: 5.0, label: '5 km' },
+                { id: '10k', target: 10.0, label: '10 km' },
+                { id: 'half', target: 21.0975, label: '半程马拉松' },
+                { id: 'full', target: 42.195, label: '全程马拉松' }
+            ];
+
+            distances.forEach(d => {
+                const candidates = activities.filter(a => a.distance >= d.target);
+                if (candidates.length > 0) {
+                    // Find activity with best pace
+                    const best = candidates.reduce((prev, curr) => prev.paceSec < curr.paceSec ? prev : curr);
+                    const timeForDistance = best.paceSec * d.target;
+                    document.getElementById(`pb-${d.id}-time`).innerText = formatPace(timeForDistance);
+                    document.getElementById(`pb-${d.id}-date`).innerText = best.date.toLocaleDateString();
+                }
+            });
+        }
+
+        function renderHeatmap() {
+            const dom = document.getElementById('heatmap-chart');
+            if (!charts.heatmap) charts.heatmap = echarts.init(dom);
+            
+            const dataMap = new Map();
+            allActivities.forEach(a => {
+                dataMap.set(a.dateStr, (dataMap.get(a.dateStr) || 0) + a.distance);
+            });
+
+            const heatmapData = Array.from(dataMap.entries());
+            const currentYear = new Date().getFullYear();
+
+            const option = {
+                tooltip: { position: 'top', formatter: p => `${p.data[0]}: ${p.data[1].toFixed(2)} km` },
+                visualMap: {
+                    min: 0, max: 20,
+                    type: 'piecewise', orient: 'horizontal', left: 'center', top: 0,
+                    pieces: [
+                        {gt: 15, color: '#1e3a8a'},
+                        {gt: 10, lte: 15, color: '#2563eb'},
+                        {gt: 5, lte: 10, color: '#60a5fa'},
+                        {gt: 0, lte: 5, color: '#bfdbfe'},
+                        {value: 0, color: '#f1f5f9'}
+                    ]
+                },
+                calendar: {
+                    top: 60, left: 30, right: 30,
+                    cellSize: ['auto', 20],
+                    range: [new Date().setFullYear(new Date().getFullYear() - 1), new Date()],
+                    itemStyle: { borderWidth: 3, borderColor: '#fff' },
+                    splitLine: { show: false },
+                    dayLabel: { nameMap: 'ZH' },
+                    monthLabel: { nameMap: 'ZH' }
+                },
+                series: {
+                    type: 'scatter',
+                    coordinateSystem: 'calendar',
+                    symbolSize: 0,
+                    data: heatmapData,
+                    label: { show: false }
+                },
+                series: [{
+                    type: 'heatmap',
+                    coordinateSystem: 'calendar',
+                    data: heatmapData
+                }]
+            };
+            charts.heatmap.setOption(option);
+        }
+
+        function renderTrendChart() {
+            const dom = document.getElementById('trend-chart');
+            if (!charts.trend) charts.trend = echarts.init(dom);
+
+            const dates = filteredActivities.map(a => a.dateStr);
+            const paces = filteredActivities.map(a => a.paceSec);
+            const hrs = filteredActivities.map(a => a.hr);
+
+            const option = {
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: params => {
+                        const p = params[0];
+                        const h = params[1];
+                        return `${p.name}<br/>配速: ${formatPace(p.data)}<br/>心率: ${h.data} bpm`;
+                    }
+                },
+                legend: { data: ['平均配速', '平均心率'], bottom: 0 },
+                grid: { top: 40, left: 60, right: 60, bottom: 60 },
+                dataZoom: [{ type: 'inside', start: 0, end: 100 }, { type: 'slider', bottom: 25 }],
+                xAxis: { type: 'category', data: dates },
+                yAxis: [
+                    { 
+                        type: 'value', name: '配速 (秒)', 
+                        inverse: true, 
+                        axisLabel: { formatter: v => formatPace(v) },
+                        splitLine: { lineStyle: { type: 'dashed' } }
+                    },
+                    { 
+                        type: 'value', name: '心率 (bpm)', 
+                        min: 100,
+                        splitLine: { show: false }
+                    }
+                ],
+                series: [
+                    {
+                        name: '平均配速', type: 'line', smooth: true,
+                        data: paces, itemStyle: { color: '#2563eb' },
+                        areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{offset: 0, color: 'rgba(37,99,235,0.2)'}, {offset: 1, color: 'transparent'}]) }
+                    },
+                    {
+                        name: '平均心率', type: 'line', yAxisIndex: 1, smooth: true,
+                        data: hrs, itemStyle: { color: '#ef4444' }
+                    }
+                ]
+            };
+            charts.trend.setOption(option);
+        }
+
+        function renderStrideChart() {
+            const dom = document.getElementById('stride-chart');
+            if (!charts.stride) charts.stride = echarts.init(dom);
+
+            const dates = filteredActivities.map(a => a.dateStr);
+            const strides = filteredActivities.map(a => a.stride);
+
+            const option = {
+                tooltip: { trigger: 'axis', formatter: '{b}<br/>步幅: {c} m' },
+                grid: { top: 40, left: 60, right: 40, bottom: 60 },
+                dataZoom: [{ type: 'inside' }, { type: 'slider', bottom: 25 }],
+                xAxis: { type: 'category', data: dates },
+                yAxis: { type: 'value', name: '步幅 (m)', min: 'dataMin' },
+                series: [{
+                    name: '平均步幅', type: 'bar', 
+                    data: strides, 
+                    itemStyle: { color: '#10b981', borderRadius: [4, 4, 0, 0] }
+                }]
+            };
+            charts.stride.setOption(option);
+        }
+    </script>
+</body>
+</html>
