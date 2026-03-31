@@ -1,3 +1,5 @@
+# Code written by Gemini cli on 20260331.
+
 import cv2
 import numpy as np
 import os
