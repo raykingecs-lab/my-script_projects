@@ -183,56 +183,85 @@
         });
 
         function processData(data) {
+            if (!data || data.length === 0) return;
             const keys = Object.keys(data[0] || {});
             
-            // 更鲁棒的列名匹配：不区分大小写，支持模糊匹配
-            const getCol = (names) => {
-                const found = names.find(n => {
-                    const target = n.toLowerCase();
-                    return keys.find(k => k.toLowerCase().trim() === target);
+            // 鲁棒的列识别：表头匹配 + 内容采样
+            const findColumn = (names, excludeNames = [], sampleKeywords = []) => {
+                // 1. 尝试精确匹配表头
+                let foundKey = keys.find(k => {
+                    const kLower = k.toLowerCase().trim();
+                    return names.some(n => n.toLowerCase() === kLower);
                 });
-                if (found) return keys.find(k => k.toLowerCase().trim() === found.toLowerCase());
-                
-                // 如果找不到精确匹配，尝试包含匹配
-                return keys.find(k => {
+                if (foundKey) return foundKey;
+
+                // 2. 尝试模糊匹配表头（排除干扰项）
+                foundKey = keys.find(k => {
                     const kLower = k.toLowerCase();
-                    return names.some(n => kLower.includes(n.toLowerCase()));
+                    const isExcluded = excludeNames.some(e => kLower.includes(e.toLowerCase()));
+                    return !isExcluded && names.some(n => kLower.includes(n.toLowerCase()));
                 });
+                if (foundKey) return foundKey;
+
+                // 3. 内容采样匹配：看前10行数据，哪一列包含关键字最多
+                if (sampleKeywords.length > 0) {
+                    let bestKey = null;
+                    let maxMatches = 0;
+                    keys.forEach(key => {
+                        let matches = 0;
+                        for (let i = 0; i < Math.min(10, data.length); i++) {
+                            const val = (data[i][key] || '').toString().toLowerCase();
+                            if (sampleKeywords.some(sk => val.includes(sk.toLowerCase()))) matches++;
+                        }
+                        if (matches > maxMatches) {
+                            maxMatches = matches;
+                            bestKey = key;
+                        }
+                    });
+                    if (maxMatches >= 2) return bestKey;
+                }
+                return null;
             };
 
-            const colType = getCol(['活动类型', 'Activity Type']);
-            const colDate = getCol(['日期', 'Date']);
-            const colDist = getCol(['距离', 'Distance']);
-            const colPace = getCol(['平均配速', 'Avg Pace']);
-            const colHR = getCol(['平均心率', 'Avg HR']);
-            const colStride = getCol(['平均步幅', 'Avg Stride Length', '平均步长']);
-            const colAerobic = getCol(['有氧训练效果', 'Aerobic Training Effect', 'Aerobic TE', '有氧']);
+            const colType = findColumn(['活动类型', 'Activity Type', '运动类型', 'Type'], ['名称', '标题', 'Name', 'Title'], ['跑步', 'running']);
+            const colDate = findColumn(['日期', 'Date', '开始时间', 'Start Time'], [], ['202', '201']);
+            const colDist = findColumn(['距离', 'Distance', '里程'], [], []);
+            const colPace = findColumn(['平均配速', 'Avg Pace', '配速'], [], [':']);
+            const colHR = findColumn(['平均心率', 'Avg HR', '心率'], [], []);
+            const colStride = findColumn(['平均步幅', 'Avg Stride Length', '平均步长', '步幅'], [], []);
+            const colAerobic = findColumn(['有氧训练效果', 'Aerobic Training Effect', 'Aerobic TE', '有氧', 'TE'], [], []);
 
-            // 辅助解析数值，提取第一个数字（处理 "3.5 (保持)" 这种情况）
             const parseVal = (val) => {
-                if (!val) return 0;
-                const match = val.toString().replace(',', '.').match(/(\d+(\.\d+)?)/);
+                if (val === undefined || val === null) return 0;
+                const str = val.toString().replace(',', '.');
+                const match = str.match(/(\d+(\.\d+)?)/);
                 return match ? parseFloat(match[1]) : 0;
             };
 
+            const formatDate = (date) => {
+                if (!(date instanceof Date) || isNaN(date.getTime())) return null;
+                const y = date.getFullYear();
+                const m = (date.getMonth() + 1).toString().padStart(2, '0');
+                const d = date.getDate().toString().padStart(2, '0');
+                return `${y}-${m}-${d}`;
+            };
+
             allActivities = data
-                .filter(row => {
-                    const type = (row[colType] || '').toLowerCase();
-                    return type.includes('跑步') || type.includes('running');
-                })
                 .map(row => {
-                    const paceSec = parsePace(row[colPace]);
+                    const d = new Date(row[colDate]);
                     return {
-                        date: new Date(row[colDate]),
-                        dateStr: row[colDate]?.split(' ')[0],
+                        date: d,
+                        dateStr: formatDate(d),
                         distance: parseVal(row[colDist]),
-                        paceSec: paceSec,
+                        paceSec: parsePace(row[colPace]),
                         hr: parseVal(row[colHR]),
                         stride: parseVal(row[colStride]),
                         aerobic: parseVal(row[colAerobic]),
                         raw: row
                     };
                 })
+                // 仅过滤掉无效日期和距离为0的记录，不再过滤活动类型
+                .filter(a => a.dateStr !== null && a.distance > 0)
                 .sort((a, b) => a.date - b.date);
 
             if (allActivities.length > 0) {
