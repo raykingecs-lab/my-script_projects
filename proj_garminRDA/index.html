@@ -52,8 +52,6 @@
                     </button>
                     <div class="flex bg-white rounded-lg p-1 shadow-sm border border-slate-200" id="filterGroup">
                         <button onclick="updateFilter('all')" class="px-4 py-1.5 rounded-md text-sm font-medium filter-btn active bg-slate-100 text-slate-800" data-range="all">全部</button>
-                        <button onclick="updateFilter('1y')" class="px-4 py-1.5 rounded-md text-sm font-medium filter-btn text-slate-600 hover:bg-slate-50" data-range="1y">1年</button>
-                        <button onclick="updateFilter('3m')" class="px-4 py-1.5 rounded-md text-sm font-medium filter-btn text-slate-600 hover:bg-slate-50" data-range="3m">3月</button>
                     </div>
                 </div>
             </div>
@@ -439,25 +437,45 @@
         function renderAerobicChart() {
             const dom = document.getElementById('aerobic-chart');
             if (!charts.aerobic) charts.aerobic = echarts.init(dom);
-            const dates = filteredActivities.map(a => a.dateStr);
-            const aerobicScores = filteredActivities.map(a => a.aerobic);
+            
+            // 按分值区间聚合（0-1, 1-2, 2-3, 3-4, 4-5）
+            const distribution = [0, 0, 0, 0, 0];
+            const labels = ['0-1\n极轻', '1-2\n恢复', '2-3\n维持', '3-4\n提高', '4-5\n显著'];
+            
+            filteredActivities.forEach(a => {
+                const score = a.aerobic;
+                if (score >= 0 && score < 1) distribution[0]++;
+                else if (score >= 1 && score < 2) distribution[1]++;
+                else if (score >= 2 && score < 3) distribution[2]++;
+                else if (score >= 3 && score < 4) distribution[3]++;
+                else if (score >= 4 && score <= 5) distribution[4]++;
+            });
+
             const option = {
-                tooltip: { trigger: 'axis', formatter: '{b}<br/>有氧效果: {c}' },
-                grid: { top: 40, left: 50, right: 30, bottom: 60 },
-                dataZoom: [{ type: 'inside' }, { type: 'slider', bottom: 25 }],
-                xAxis: { type: 'category', data: dates },
-                yAxis: { type: 'value', name: 'TE 分数', min: 0, max: 5 },
-                visualMap: {
-                    show: false,
-                    pieces: [
-                        {gt: 0, lte: 1, color: '#94a3b8'},
-                        {gt: 1, lte: 2, color: '#10b981'},
-                        {gt: 2, lte: 3, color: '#3b82f6'},
-                        {gt: 3, lte: 4, color: '#f59e0b'},
-                        {gt: 4, lte: 5, color: '#ef4444'}
-                    ]
+                tooltip: { 
+                    trigger: 'axis', 
+                    formatter: params => `${params[0].name.replace('\n', ' ')}<br/>跑步次数: ${params[0].data} 次`
                 },
-                series: [{ name: '有氧效果', type: 'bar', data: aerobicScores, barMaxWidth: 20 }]
+                grid: { top: 40, left: 50, right: 30, bottom: 60 },
+                xAxis: { 
+                    type: 'category', 
+                    data: labels,
+                    axisLabel: { interval: 0, fontSize: 11 }
+                },
+                yAxis: { type: 'value', name: '活动次数', minInterval: 1 },
+                series: [{ 
+                    name: '有氧效果分布', 
+                    type: 'bar', 
+                    data: distribution.map((val, idx) => ({
+                        value: val,
+                        itemStyle: {
+                            color: ['#94a3b8', '#10b981', '#3b82f6', '#f59e0b', '#ef4444'][idx]
+                        }
+                    })), 
+                    barMaxWidth: 50,
+                    itemStyle: { borderRadius: [4, 4, 0, 0] },
+                    label: { show: true, position: 'top', color: '#64748b' }
+                }]
             };
             charts.aerobic.setOption(option, true);
         }
