@@ -16,28 +16,45 @@
         .chart-container { min-height: 400px; width: 100%; }
         .pb-card { transition: transform 0.2s; }
         .pb-card:hover { transform: translateY(-4px); }
+        input[type="date"] { border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 0.4rem 0.75rem; font-size: 0.875rem; color: #1e293b; outline: none; }
+        input[type="date"]:focus { border-color: #3b82f6; ring: 2px solid #bfdbfe; }
     </style>
 </head>
 <body class="p-4 md:p-8">
     <div class="max-w-7xl mx-auto">
         <!-- Header -->
-        <header class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+        <header class="flex flex-col xl:flex-row xl:items-center justify-between mb-8 gap-6">
             <div>
                 <h1 class="text-3xl font-bold text-slate-800">Garmin 跑步数据分析</h1>
                 <p class="text-slate-500 mt-1">上传您的 Activities.csv 文件，即刻洞察运动表现</p>
             </div>
-            <div class="flex items-center gap-4">
-                <input type="file" id="csvFile" accept=".csv" class="hidden">
-                <button onclick="document.getElementById('csvFile').click()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors shadow-sm flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-                    </svg>
-                    上传 CSV
-                </button>
-                <div class="flex bg-white rounded-lg p-1 shadow-sm border border-slate-200" id="filterGroup">
-                    <button onclick="updateFilter('all')" class="px-4 py-1.5 rounded-md text-sm font-medium filter-btn active bg-slate-100 text-slate-800" data-range="all">全部</button>
-                    <button onclick="updateFilter('1y')" class="px-4 py-1.5 rounded-md text-sm font-medium filter-btn text-slate-600 hover:bg-slate-50" data-range="1y">1年</button>
-                    <button onclick="updateFilter('3m')" class="px-4 py-1.5 rounded-md text-sm font-medium filter-btn text-slate-600 hover:bg-slate-50" data-range="3m">3月</button>
+            <div class="flex flex-wrap items-center gap-4">
+                <!-- Date Selection -->
+                <div class="flex items-center gap-2 bg-white p-2 rounded-xl shadow-sm border border-slate-100">
+                    <div class="flex items-center gap-2">
+                        <label class="text-xs font-semibold text-slate-400 uppercase ml-1">开始</label>
+                        <input type="date" id="startDate" onchange="updateCustomDates()">
+                    </div>
+                    <div class="h-4 w-px bg-slate-200"></div>
+                    <div class="flex items-center gap-2">
+                        <label class="text-xs font-semibold text-slate-400 uppercase">结束</label>
+                        <input type="date" id="endDate" onchange="updateCustomDates()">
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-4">
+                    <input type="file" id="csvFile" accept=".csv" class="hidden">
+                    <button onclick="document.getElementById('csvFile').click()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                        </svg>
+                        上传 CSV
+                    </button>
+                    <div class="flex bg-white rounded-lg p-1 shadow-sm border border-slate-200" id="filterGroup">
+                        <button onclick="updateFilter('all')" class="px-4 py-1.5 rounded-md text-sm font-medium filter-btn active bg-slate-100 text-slate-800" data-range="all">全部</button>
+                        <button onclick="updateFilter('1y')" class="px-4 py-1.5 rounded-md text-sm font-medium filter-btn text-slate-600 hover:bg-slate-50" data-range="1y">1年</button>
+                        <button onclick="updateFilter('3m')" class="px-4 py-1.5 rounded-md text-sm font-medium filter-btn text-slate-600 hover:bg-slate-50" data-range="3m">3月</button>
+                    </div>
                 </div>
             </div>
         </header>
@@ -80,16 +97,22 @@
             <div id="heatmap-chart" class="chart-container" style="min-height: 250px;"></div>
         </div>
 
-        <!-- Secondary Charts -->
+        <!-- Row 3: Trend & Aerobic -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
                 <h3 class="text-lg font-semibold text-slate-800 mb-4">配速与心率趋势</h3>
                 <div id="trend-chart" class="chart-container"></div>
             </div>
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                <h3 class="text-lg font-semibold text-slate-800 mb-4">技术指标：平均步幅</h3>
-                <div id="stride-chart" class="chart-container"></div>
+                <h3 class="text-lg font-semibold text-slate-800 mb-4">有氧训练效果 (TE)</h3>
+                <div id="aerobic-chart" class="chart-container"></div>
             </div>
+        </div>
+
+        <!-- Row 4: Tech Indicator -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-8">
+            <h3 class="text-lg font-semibold text-slate-800 mb-4">技术指标：平均步幅</h3>
+            <div id="stride-chart" class="chart-container" style="min-height: 300px;"></div>
         </div>
 
         <!-- PB Wall -->
@@ -135,7 +158,8 @@
         let charts = {
             heatmap: null,
             trend: null,
-            stride: null
+            stride: null,
+            aerobic: null
         };
 
         // Initialize Charts on Load
@@ -148,7 +172,7 @@
             Papa.parse(file, {
                 header: true,
                 skipEmptyLines: true,
-                encoding: "UTF-8", // Usually Garmin export is UTF-8
+                encoding: "UTF-8",
                 complete: function(results) {
                     processData(results.data);
                 },
@@ -159,10 +183,21 @@
         });
 
         function processData(data) {
-            // Flexible column finding
+            const keys = Object.keys(data[0] || {});
+            
+            // 更鲁棒的列名匹配：不区分大小写，支持模糊匹配
             const getCol = (names) => {
-                const keys = Object.keys(data[0] || {});
-                return names.find(n => keys.includes(n));
+                const found = names.find(n => {
+                    const target = n.toLowerCase();
+                    return keys.find(k => k.toLowerCase().trim() === target);
+                });
+                if (found) return keys.find(k => k.toLowerCase().trim() === found.toLowerCase());
+                
+                // 如果找不到精确匹配，尝试包含匹配
+                return keys.find(k => {
+                    const kLower = k.toLowerCase();
+                    return names.some(n => kLower.includes(n.toLowerCase()));
+                });
             };
 
             const colType = getCol(['活动类型', 'Activity Type']);
@@ -171,26 +206,42 @@
             const colPace = getCol(['平均配速', 'Avg Pace']);
             const colHR = getCol(['平均心率', 'Avg HR']);
             const colStride = getCol(['平均步幅', 'Avg Stride Length', '平均步长']);
+            const colAerobic = getCol(['有氧训练效果', 'Aerobic Training Effect', 'Aerobic TE', '有氧']);
+
+            // 辅助解析数值，提取第一个数字（处理 "3.5 (保持)" 这种情况）
+            const parseVal = (val) => {
+                if (!val) return 0;
+                const match = val.toString().replace(',', '.').match(/(\d+(\.\d+)?)/);
+                return match ? parseFloat(match[1]) : 0;
+            };
 
             allActivities = data
-                .filter(row => row[colType]?.includes('跑步') || row[colType]?.includes('Running'))
+                .filter(row => {
+                    const type = (row[colType] || '').toLowerCase();
+                    return type.includes('跑步') || type.includes('running');
+                })
                 .map(row => {
-                    const dist = parseFloat(row[colDist]?.replace(',', '')) || 0;
                     const paceSec = parsePace(row[colPace]);
                     return {
                         date: new Date(row[colDate]),
                         dateStr: row[colDate]?.split(' ')[0],
-                        distance: dist,
+                        distance: parseVal(row[colDist]),
                         paceSec: paceSec,
-                        hr: parseInt(row[colHR]) || 0,
-                        stride: parseFloat(row[colStride]) || 0,
+                        hr: parseVal(row[colHR]),
+                        stride: parseVal(row[colStride]),
+                        aerobic: parseVal(row[colAerobic]),
                         raw: row
                     };
                 })
                 .sort((a, b) => a.date - b.date);
 
+            if (allActivities.length > 0) {
+                document.getElementById('startDate').value = allActivities[0].dateStr;
+                document.getElementById('endDate').value = allActivities[allActivities.length - 1].dateStr;
+            }
+
             updateFilter(currentFilter);
-            calculatePBs(allActivities); // PB should probably be from all-time record
+            calculatePBs(allActivities);
         }
 
         function parsePace(paceStr) {
@@ -209,10 +260,29 @@
             return `${m}:${s.toString().padStart(2, '0')}`;
         }
 
+        function updateCustomDates() {
+            const startStr = document.getElementById('startDate').value;
+            const endStr = document.getElementById('endDate').value;
+            if (!startStr || !endStr) return;
+
+            const start = new Date(startStr);
+            const end = new Date(endStr);
+            end.setHours(23, 59, 59);
+
+            filteredActivities = allActivities.filter(a => a.date >= start && a.date <= end);
+            
+            // Clear quick filter active state
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active', 'bg-slate-100', 'text-slate-800');
+                btn.classList.add('text-slate-600');
+            });
+
+            renderDashboard();
+        }
+
         function updateFilter(range) {
             currentFilter = range;
             
-            // UI Update
             document.querySelectorAll('.filter-btn').forEach(btn => {
                 btn.classList.remove('active', 'bg-slate-100', 'text-slate-800');
                 btn.classList.add('text-slate-600');
@@ -223,14 +293,22 @@
             });
 
             const now = new Date();
+            let start;
             if (range === 'all') {
                 filteredActivities = [...allActivities];
+                if (allActivities.length > 0) start = allActivities[0].date;
             } else if (range === '1y') {
-                const oneYearAgo = new Date().setFullYear(now.getFullYear() - 1);
-                filteredActivities = allActivities.filter(a => a.date >= oneYearAgo);
+                start = new Date().setFullYear(now.getFullYear() - 1);
+                filteredActivities = allActivities.filter(a => a.date >= start);
             } else if (range === '3m') {
-                const threeMonthsAgo = new Date().setMonth(now.getMonth() - 3);
-                filteredActivities = allActivities.filter(a => a.date >= threeMonthsAgo);
+                start = new Date().setMonth(now.getMonth() - 3);
+                filteredActivities = allActivities.filter(a => a.date >= start);
+            }
+
+            // Sync date inputs
+            if (filteredActivities.length > 0) {
+                document.getElementById('startDate').value = filteredActivities[0].dateStr;
+                document.getElementById('endDate').value = filteredActivities[filteredActivities.length - 1].dateStr;
             }
 
             renderDashboard();
@@ -240,14 +318,13 @@
             updateKPIs();
             renderHeatmap();
             renderTrendChart();
+            renderAerobicChart();
             renderStrideChart();
         }
 
         function updateKPIs() {
             const totalDist = filteredActivities.reduce((sum, a) => sum + a.distance, 0);
             const totalCount = filteredActivities.length;
-            
-            // Weighted averages
             const avgPace = totalDist > 0 
                 ? filteredActivities.reduce((sum, a) => sum + (a.paceSec * a.distance), 0) / totalDist 
                 : 0;
@@ -263,16 +340,15 @@
 
         function calculatePBs(activities) {
             const distances = [
-                { id: '5k', target: 5.0, label: '5 km' },
-                { id: '10k', target: 10.0, label: '10 km' },
-                { id: 'half', target: 21.0975, label: '半程马拉松' },
-                { id: 'full', target: 42.195, label: '全程马拉松' }
+                { id: '5k', target: 5.0 },
+                { id: '10k', target: 10.0 },
+                { id: 'half', target: 21.0975 },
+                { id: 'full', target: 42.195 }
             ];
 
             distances.forEach(d => {
                 const candidates = activities.filter(a => a.distance >= d.target);
                 if (candidates.length > 0) {
-                    // Find activity with best pace
                     const best = candidates.reduce((prev, curr) => prev.paceSec < curr.paceSec ? prev : curr);
                     const timeForDistance = best.paceSec * d.target;
                     document.getElementById(`pb-${d.id}-time`).innerText = formatPace(timeForDistance);
@@ -284,49 +360,25 @@
         function renderHeatmap() {
             const dom = document.getElementById('heatmap-chart');
             if (!charts.heatmap) charts.heatmap = echarts.init(dom);
-            
             const dataMap = new Map();
             allActivities.forEach(a => {
                 dataMap.set(a.dateStr, (dataMap.get(a.dateStr) || 0) + a.distance);
             });
-
             const heatmapData = Array.from(dataMap.entries());
-            const currentYear = new Date().getFullYear();
-
             const option = {
                 tooltip: { position: 'top', formatter: p => `${p.data[0]}: ${p.data[1].toFixed(2)} km` },
                 visualMap: {
                     min: 0, max: 20,
                     type: 'piecewise', orient: 'horizontal', left: 'center', top: 0,
-                    pieces: [
-                        {gt: 15, color: '#1e3a8a'},
-                        {gt: 10, lte: 15, color: '#2563eb'},
-                        {gt: 5, lte: 10, color: '#60a5fa'},
-                        {gt: 0, lte: 5, color: '#bfdbfe'},
-                        {value: 0, color: '#f1f5f9'}
-                    ]
+                    pieces: [{gt: 15, color: '#1e3a8a'}, {gt: 10, lte: 15, color: '#2563eb'}, {gt: 5, lte: 10, color: '#60a5fa'}, {gt: 0, lte: 5, color: '#bfdbfe'}, {value: 0, color: '#f1f5f9'}]
                 },
                 calendar: {
-                    top: 60, left: 30, right: 30,
-                    cellSize: ['auto', 20],
+                    top: 60, left: 30, right: 30, cellSize: ['auto', 20],
                     range: [new Date().setFullYear(new Date().getFullYear() - 1), new Date()],
                     itemStyle: { borderWidth: 3, borderColor: '#fff' },
-                    splitLine: { show: false },
-                    dayLabel: { nameMap: 'ZH' },
-                    monthLabel: { nameMap: 'ZH' }
+                    splitLine: { show: false }, dayLabel: { nameMap: 'ZH' }, monthLabel: { nameMap: 'ZH' }
                 },
-                series: {
-                    type: 'scatter',
-                    coordinateSystem: 'calendar',
-                    symbolSize: 0,
-                    data: heatmapData,
-                    label: { show: false }
-                },
-                series: [{
-                    type: 'heatmap',
-                    coordinateSystem: 'calendar',
-                    data: heatmapData
-                }]
+                series: [{ type: 'heatmap', coordinateSystem: 'calendar', data: heatmapData }]
             };
             charts.heatmap.setOption(option);
         }
@@ -334,72 +386,67 @@
         function renderTrendChart() {
             const dom = document.getElementById('trend-chart');
             if (!charts.trend) charts.trend = echarts.init(dom);
-
             const dates = filteredActivities.map(a => a.dateStr);
             const paces = filteredActivities.map(a => a.paceSec);
             const hrs = filteredActivities.map(a => a.hr);
-
             const option = {
-                tooltip: {
-                    trigger: 'axis',
-                    formatter: params => {
-                        const p = params[0];
-                        const h = params[1];
-                        return `${p.name}<br/>配速: ${formatPace(p.data)}<br/>心率: ${h.data} bpm`;
-                    }
-                },
+                tooltip: { trigger: 'axis', formatter: params => `${params[0].name}<br/>配速: ${formatPace(params[0].data)}<br/>心率: ${params[1].data} bpm` },
                 legend: { data: ['平均配速', '平均心率'], bottom: 0 },
                 grid: { top: 40, left: 60, right: 60, bottom: 60 },
-                dataZoom: [{ type: 'inside', start: 0, end: 100 }, { type: 'slider', bottom: 25 }],
+                dataZoom: [{ type: 'inside' }, { type: 'slider', bottom: 25 }],
                 xAxis: { type: 'category', data: dates },
                 yAxis: [
-                    { 
-                        type: 'value', name: '配速 (秒)', 
-                        inverse: true, 
-                        axisLabel: { formatter: v => formatPace(v) },
-                        splitLine: { lineStyle: { type: 'dashed' } }
-                    },
-                    { 
-                        type: 'value', name: '心率 (bpm)', 
-                        min: 100,
-                        splitLine: { show: false }
-                    }
+                    { type: 'value', name: '配速', inverse: true, axisLabel: { formatter: v => formatPace(v) }, splitLine: { lineStyle: { type: 'dashed' } } },
+                    { type: 'value', name: '心率', min: 100, splitLine: { show: false } }
                 ],
                 series: [
-                    {
-                        name: '平均配速', type: 'line', smooth: true,
-                        data: paces, itemStyle: { color: '#2563eb' },
-                        areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{offset: 0, color: 'rgba(37,99,235,0.2)'}, {offset: 1, color: 'transparent'}]) }
-                    },
-                    {
-                        name: '平均心率', type: 'line', yAxisIndex: 1, smooth: true,
-                        data: hrs, itemStyle: { color: '#ef4444' }
-                    }
+                    { name: '平均配速', type: 'line', smooth: true, data: paces, itemStyle: { color: '#2563eb' } },
+                    { name: '平均心率', type: 'line', yAxisIndex: 1, smooth: true, data: hrs, itemStyle: { color: '#ef4444' } }
                 ]
             };
-            charts.trend.setOption(option);
+            charts.trend.setOption(option, true);
+        }
+
+        function renderAerobicChart() {
+            const dom = document.getElementById('aerobic-chart');
+            if (!charts.aerobic) charts.aerobic = echarts.init(dom);
+            const dates = filteredActivities.map(a => a.dateStr);
+            const aerobicScores = filteredActivities.map(a => a.aerobic);
+            const option = {
+                tooltip: { trigger: 'axis', formatter: '{b}<br/>有氧效果: {c}' },
+                grid: { top: 40, left: 50, right: 30, bottom: 60 },
+                dataZoom: [{ type: 'inside' }, { type: 'slider', bottom: 25 }],
+                xAxis: { type: 'category', data: dates },
+                yAxis: { type: 'value', name: 'TE 分数', min: 0, max: 5 },
+                visualMap: {
+                    show: false,
+                    pieces: [
+                        {gt: 0, lte: 1, color: '#94a3b8'},
+                        {gt: 1, lte: 2, color: '#10b981'},
+                        {gt: 2, lte: 3, color: '#3b82f6'},
+                        {gt: 3, lte: 4, color: '#f59e0b'},
+                        {gt: 4, lte: 5, color: '#ef4444'}
+                    ]
+                },
+                series: [{ name: '有氧效果', type: 'bar', data: aerobicScores, barMaxWidth: 20 }]
+            };
+            charts.aerobic.setOption(option, true);
         }
 
         function renderStrideChart() {
             const dom = document.getElementById('stride-chart');
             if (!charts.stride) charts.stride = echarts.init(dom);
-
             const dates = filteredActivities.map(a => a.dateStr);
             const strides = filteredActivities.map(a => a.stride);
-
             const option = {
                 tooltip: { trigger: 'axis', formatter: '{b}<br/>步幅: {c} m' },
                 grid: { top: 40, left: 60, right: 40, bottom: 60 },
                 dataZoom: [{ type: 'inside' }, { type: 'slider', bottom: 25 }],
                 xAxis: { type: 'category', data: dates },
                 yAxis: { type: 'value', name: '步幅 (m)', min: 'dataMin' },
-                series: [{
-                    name: '平均步幅', type: 'bar', 
-                    data: strides, 
-                    itemStyle: { color: '#10b981', borderRadius: [4, 4, 0, 0] }
-                }]
+                series: [{ name: '平均步幅', type: 'line', step: 'middle', data: strides, itemStyle: { color: '#8b5cf6' }, areaStyle: { color: 'rgba(139,92,246,0.1)' } }]
             };
-            charts.stride.setOption(option);
+            charts.stride.setOption(option, true);
         }
     </script>
 </body>
