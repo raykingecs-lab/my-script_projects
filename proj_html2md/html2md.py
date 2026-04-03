@@ -13,7 +13,7 @@ from bs4 import BeautifulSoup
 from markdownify import markdownify as md
 from tqdm import tqdm
 
-# 配置日志
+#  配置日志
 logging.basicConfig(
     level=logging.INFO, 
     format='%(levelname)s: %(message)s',
