@@ -1,0 +1,17 @@
+# 忽略 Python 缓存
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 忽略虚拟环境
+venv/
+env/
+.venv/
+
+# 忽略生成的截图和笔记（假设你的文件夹叫 notes 或根据实际情况修改）
+*.png
+*.jpg
+*.md
+
+# 排除 README.md，这个我们需要上传
+!README.md
