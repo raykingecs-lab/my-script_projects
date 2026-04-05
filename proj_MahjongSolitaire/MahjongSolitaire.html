@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>上海马拉松：多层对对碰 (Ultimate Edition)</title>
+    <style>
+        :root {
+            --neon-green: #CCFF00;
+            --deep-blue: #0A0E14;
+            --white: #FFFFFF;
+            --gray: #2A2E35;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            background-color: var(--deep-blue);
+            color: var(--white);
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+        }
+
+        #dashboard {
+            width: 100%;
+            max-width: 500px;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .stat-box { text-align: left; }
+        .stat-label { font-size: 10px; color: var(--neon-green); font-weight: bold; }
+        .stat-value { font-size: 20px; font-weight: 900; font-family: 'Courier New', monospace; }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        canvas { display: block; touch-action: none; cursor: pointer; }
+
+        #overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10, 14, 20, 0.95);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            text-align: center;
+            padding: 20px;
+        }
+
+        #overlay h2 { font-size: 36px; color: var(--neon-green); margin-bottom: 10px; }
+        #overlay p { color: #888; margin-bottom: 30px; line-height: 1.6; }
+
+        .btn {
+            padding: 15px 50px;
+            background: var(--neon-green);
+            color: var(--deep-blue);
+            font-weight: 900;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 18px;
+            text-transform: uppercase;
+        }
+
+        #progress-wrapper { width: 90%; height: 6px; background: var(--gray); margin-bottom: 20px; position: relative; border-radius: 3px; overflow: hidden; }
+        #progress-bar { position: absolute; height: 100%; background: var(--neon-green); width: 0%; transition: width 0.3s; box-shadow: 0 0 15px var(--neon-green); }
+    </style>
+</head>
+<body>
+
+    <div id="dashboard">
+        <div class="stat-box">
+            <div class="stat-label">DISTANCE (KM)</div>
+            <div class="stat-value"><span id="score">0.000</span></div>
+        </div>
+        <div class="stat-box" style="text-align: right;">
+            <div class="stat-label">TIME LIMIT</div>
+            <div class="stat-value" id="timer">08:00</div>
+        </div>
+    </div>
+
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        <div id="overlay">
+            <h2 id="overlay-title">SHANGHAI MARATHON</h2>
+            <p id="overlay-msg">ULTIMATE CHALLENGE: 120 ITEMS STACKED</p>
+            <button class="btn" onclick="game.start()">Start Race</button>
+        </div>
+    </div>
+
+    <div id="progress-wrapper"><div id="progress-bar"></div></div>
+
+    <script>
+        const CONFIG = {
+            COLORS: {
+                neon: '#CCFF00',
+                deep: '#0A0E14',
+                white: '#FFFFFF',
+                gray: '#33373E',
+                locked: '#121417'
+            },
+            TYPES: ['shoe', 'gel', 'medal', 'clock', 'cap', 'watch'],
+            ITEM_SIZE: 56,
+            TOTAL_PAIRS: 60, // 120个元素
+            TARGET_DISTANCE: 42.195,
+            INITIAL_TIME: 480 // 8分钟
+        };
+
+        class Sprite {
+            constructor(type, x, y, z) {
+                this.type = type;
+                this.x = x;
+                this.y = y;
+                this.z = z;
+                this.size = CONFIG.ITEM_SIZE;
+                this.isMatched = false;
+                this.isClickable = false;
+                this.scale = 1;
+                this.opacity = 1;
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.translate(this.x + this.size/2, this.y + this.size/2);
+                ctx.scale(this.scale, this.scale);
+                ctx.translate(-this.size/2, -this.size/2);
+
+                // 卡片阴影
+                if (this.isClickable) {
+                    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+                    ctx.shadowBlur = 8;
+                    ctx.shadowOffsetY = 4;
+                }
+
+                // 背景
+                ctx.fillStyle = this.isClickable ? CONFIG.COLORS.gray : CONFIG.COLORS.locked;
+                ctx.strokeStyle = this.isClickable ? CONFIG.COLORS.neon : '#222';
+                ctx.lineWidth = this.isClickable ? 2.5 : 1;
+                ctx.globalAlpha = this.isClickable ? 1 : 0.35;
+
+                ctx.beginPath();
+                ctx.roundRect(0, 0, this.size, this.size, 8);
+                ctx.fill();
+                ctx.stroke();
+
+                // 绘制图标
+                this.drawUltimateIcon(ctx);
+
+                ctx.restore();
+            }
+
+            drawUltimateIcon(ctx) {
+                const s = this.size;
+                const c = s / 2;
+                const p = s * 0.18;
+                ctx.strokeStyle = this.isClickable ? CONFIG.COLORS.white : '#555';
+                ctx.fillStyle = ctx.strokeStyle;
+                ctx.lineWidth = 2.5;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+
+                switch(this.type) {
+                    case 'shoe': // 跑鞋：明确侧视图
+                        // 鞋底 (后跟厚)
+                        ctx.beginPath();
+                        ctx.moveTo(p, s-p*1.5);
+                        ctx.lineTo(s-p, s-p*1.5);
+                        ctx.lineTo(s-p, s-p*1.2);
+                        ctx.quadraticCurveTo(c, s-p, p, s-p*1.2);
+                        ctx.closePath();
+                        ctx.fill();
+                        // 鞋身
+                        ctx.beginPath();
+                        ctx.moveTo(p+2, s-p*1.6);
+                        ctx.lineTo(p, c); // 后跟
+                        ctx.quadraticCurveTo(p+2, p*1.2, c, p*1.5); // 鞋面
+                        ctx.lineTo(s-p*1.5, c+5); // 鞋头
+                        ctx.lineTo(s-p, s-p*1.6);
+                        ctx.stroke();
+                        // 鞋带
+                        ctx.beginPath();
+                        ctx.moveTo(c-5, p*1.8); ctx.lineTo(c+5, c);
+                        ctx.moveTo(c-2, p*2.2); ctx.lineTo(c+8, c+3);
+                        ctx.stroke();
+                        break;
+
+                    case 'cap': // 空顶帽：明确的鸭舌和环形带
+                        // 鸭舌 (Bill)
+                        ctx.beginPath();
+                        ctx.moveTo(c-2, c+2);
+                        ctx.quadraticCurveTo(s-p+8, c+5, c-2, c+15);
+                        ctx.fill();
+                        // 帽带
+                        ctx.beginPath();
+                        ctx.arc(c-5, c+8, p*0.8, -Math.PI/2, Math.PI/2, true);
+                        ctx.lineTo(c-2, c+15);
+                        ctx.moveTo(c-5, c+8-p*0.8);
+                        ctx.lineTo(c-2, c+2);
+                        ctx.stroke();
+                        // 顶部留空感
+                        ctx.setLineDash([2, 2]);
+                        ctx.beginPath(); ctx.arc(c-5, c+8, p, -Math.PI/2, 0); ctx.stroke();
+                        ctx.setLineDash([]);
+                        break;
+
+                    case 'medal': // 奖牌
+                        ctx.beginPath();
+                        ctx.moveTo(c-p, p); ctx.lineTo(c, c-5); ctx.lineTo(c+p, p); ctx.stroke();
+                        ctx.beginPath();
+                        ctx.arc(c, c+p, p*0.7, 0, Math.PI*2);
+                        ctx.fill();
+                        ctx.beginPath();
+                        ctx.arc(c, c+p, p*1.1, 0, Math.PI*2);
+                        ctx.stroke();
+                        break;
+
+                    case 'clock': // 计时钟
+                        ctx.beginPath(); ctx.rect(p, c-p*0.5, s-p*2, p*1.2); ctx.stroke();
+                        ctx.font = "900 12px monospace";
+                        ctx.fillText("02:01", p+4, c+4);
+                        ctx.beginPath(); ctx.moveTo(c-5, c-p*0.5); ctx.lineTo(c-5, p); ctx.lineTo(c+5, p); ctx.lineTo(c+5, c-p*0.5); ctx.stroke();
+                        break;
+
+                    case 'gel': // 能量胶
+                        ctx.beginPath();
+                        ctx.moveTo(c-p*0.6, p); ctx.lineTo(c+p*0.6, p);
+                        ctx.lineTo(c+p*0.8, p+5); ctx.lineTo(c+p*0.8, s-p);
+                        ctx.lineTo(c-p*0.8, s-p); ctx.lineTo(c-p*0.8, p+5);
+                        ctx.closePath();
+                        ctx.stroke();
+                        ctx.font = "900 9px sans-serif";
+                        ctx.fillText("ENERGY", c-16, c+4);
+                        break;
+
+                    case 'watch': // 运动手表
+                        ctx.beginPath(); ctx.rect(c-p*0.7, p, p*1.4, s-p*2); ctx.stroke();
+                        ctx.beginPath(); ctx.arc(c, c, p, 0, Math.PI*2); ctx.fill();
+                        ctx.strokeStyle = CONFIG.COLORS.deep;
+                        ctx.beginPath(); ctx.moveTo(c, c); ctx.lineTo(c+4, c); ctx.moveTo(c, c); ctx.lineTo(c, c-4); ctx.stroke();
+                        break;
+                }
+            }
+        }
+
+        class Game {
+            constructor() {
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.sprites = [];
+                this.selected = null;
+                this.distance = 0;
+                this.timeLeft = CONFIG.INITIAL_TIME;
+                this.isRunning = false;
+
+                this.initCanvas();
+                window.addEventListener('resize', () => this.initCanvas());
+                this.canvas.addEventListener('pointerdown', (e) => this.handleInput(e));
+                this.showOverlay("SHANGHAI MARATHON", "ULTIMATE MODE: 120 ITEMS / MAX STACK");
+            }
+
+            initCanvas() {
+                const container = document.getElementById('game-container');
+                this.canvas.width = Math.min(container.clientWidth, 600);
+                this.canvas.height = Math.min(container.clientHeight, 800);
+                this.render();
+            }
+
+            start() {
+                this.sprites = [];
+                this.distance = 0;
+                this.timeLeft = CONFIG.INITIAL_TIME;
+                this.isRunning = true;
+                this.selected = null;
+                document.getElementById('overlay').style.display = 'none';
+                this.generateLevel();
+                this.lastTime = performance.now();
+                this.animate();
+            }
+
+            generateLevel() {
+                const pool = [];
+                for(let i=0; i < CONFIG.TOTAL_PAIRS; i++) {
+                    const type = CONFIG.TYPES[i % CONFIG.TYPES.length];
+                    pool.push(type, type);
+                }
+                pool.sort(() => Math.random() - 0.5);
+
+                const cx = this.canvas.width / 2;
+                const cy = this.canvas.height / 2;
+                // 极度紧凑的分布区，增加重叠
+                const areaW = this.canvas.width * 0.65;
+                const areaH = this.canvas.height * 0.65;
+
+                pool.forEach((type, index) => {
+                    // 提升层级密度
+                    const z = Math.floor(index / 6); 
+                    const rx = cx + (Math.random() - 0.5) * areaW - CONFIG.ITEM_SIZE/2;
+                    const ry = cy + (Math.random() - 0.5) * areaH - CONFIG.ITEM_SIZE/2;
+                    this.sprites.push(new Sprite(type, rx, ry, z));
+                });
+
+                this.updateClickable();
+            }
+
+            updateClickable() {
+                this.sprites.forEach((a, i) => {
+                    if (a.isMatched) return;
+                    let blocked = false;
+                    for (let j = 0; j < this.sprites.length; j++) {
+                        const b = this.sprites[j];
+                        if (i === j || b.isMatched) continue;
+                        if (b.z > a.z) {
+                            if (!(a.x + a.size < b.x || a.x > b.x + b.size || a.y + a.size < b.y || a.y > b.y + b.size)) {
+                                blocked = true;
+                                break;
+                            }
+                        }
+                    }
+                    a.isClickable = !blocked;
+                });
+            }
+
+            handleInput(e) {
+                if (!this.isRunning) return;
+                const rect = this.canvas.getBoundingClientRect();
+                const mx = e.clientX - rect.left;
+                const my = e.clientY - rect.top;
+
+                for (let i = this.sprites.length - 1; i >= 0; i--) {
+                    const s = this.sprites[i];
+                    if (s.isClickable && !s.isMatched) {
+                        if (mx > s.x && mx < s.x + s.size && my > s.y && my < s.y + s.size) {
+                            this.onSpriteClick(s);
+                            return;
+                        }
+                    }
+                }
+            }
+
+            onSpriteClick(s) {
+                if (!this.selected) {
+                    this.selected = s;
+                    s.scale = 1.2;
+                } else if (this.selected === s) {
+                    s.scale = 1;
+                    this.selected = null;
+                } else {
+                    if (this.selected.type === s.type) {
+                        this.match(this.selected, s);
+                        this.selected = null;
+                    } else {
+                        this.selected.scale = 1;
+                        this.selected = s;
+                        s.scale = 1.2;
+                    }
+                }
+            }
+
+            match(s1, s2) {
+                this.distance += (CONFIG.TARGET_DISTANCE / CONFIG.TOTAL_PAIRS);
+                let frame = 0;
+                const anim = () => {
+                    frame++;
+                    s1.scale *= 0.8; s2.scale *= 0.8;
+                    s1.opacity *= 0.7; s2.opacity *= 0.7;
+                    if (frame < 8) requestAnimationFrame(anim);
+                    else {
+                        s1.isMatched = true; s2.isMatched = true;
+                        this.updateClickable();
+                        this.checkWin();
+                    }
+                };
+                anim();
+            }
+
+            checkWin() {
+                if (this.sprites.every(s => s.isMatched)) {
+                    this.isRunning = false;
+                    this.showOverlay("PB ACHIEVED!", "CONGRATULATIONS: 42.195KM COMPLETED");
+                }
+            }
+
+            update(dt) {
+                if (!this.isRunning) return;
+                this.timeLeft -= dt / 1000;
+                if (this.timeLeft <= 0) {
+                    this.isRunning = false;
+                    this.showOverlay("DNF", "TIME EXPIRED. BETTER LUCK NEXT YEAR.");
+                }
+                document.getElementById('score').innerText = this.distance.toFixed(3);
+                const m = Math.floor(this.timeLeft / 60);
+                const s = Math.floor(this.timeLeft % 60);
+                document.getElementById('timer').innerText = `${m}:${s.toString().padStart(2,'0')}`;
+                document.getElementById('progress-bar').style.width = `${(this.distance / CONFIG.TARGET_DISTANCE) * 100}%`;
+            }
+
+            render() {
+                this.ctx.fillStyle = CONFIG.COLORS.deep;
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+                // 装饰性赛道感
+                this.ctx.strokeStyle = '#161B22';
+                this.ctx.lineWidth = 2;
+                for(let i=0; i<this.canvas.width; i+=40) {
+                    this.ctx.beginPath(); this.ctx.moveTo(i,0); this.ctx.lineTo(i,this.canvas.height); this.ctx.stroke();
+                }
+
+                const sorted = [...this.sprites].sort((a,b) => a.z - b.z);
+                sorted.forEach(s => { if (!s.isMatched) s.draw(this.ctx); });
+            }
+
+            animate() {
+                if (!this.isRunning) return;
+                const now = performance.now();
+                const dt = now - this.lastTime;
+                this.lastTime = now;
+                this.update(dt);
+                this.render();
+                requestAnimationFrame(() => this.animate());
+            }
+
+            showOverlay(title, msg) {
+                const overlay = document.getElementById('overlay');
+                document.getElementById('overlay-title').innerText = title;
+                document.getElementById('overlay-msg').innerText = msg;
+                overlay.style.display = 'flex';
+            }
+        }
+
+        const game = new Game();
+    </script>
+</body>
+</html>
