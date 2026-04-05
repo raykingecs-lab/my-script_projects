@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Garmin 跑步数据全能分析看板</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- PapaParse for CSV -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <!-- ECharts -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background-color: #f8fafc; }
+        .chart-container { min-height: 400px; width: 100%; }
+        .pb-card { transition: transform 0.2s; }
+        .pb-card:hover { transform: translateY(-4px); }
+        .tab-active { border-bottom: 2px solid #2563eb; color: #2563eb; }
+        .hidden { display: none; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { text-align: left; padding: 12px 15px; border-bottom: 1px solid #e2e8f0; }
+        th { background-color: #f8fafc; font-weight: 600; font-size: 0.875rem; color: #64748b; }
+        .summary-row { background-color: #f1f5f9; font-weight: bold; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <header class="flex flex-col xl:flex-row xl:items-center justify-between mb-8 gap-6">
+            <div>
+                <h1 class="text-3xl font-bold text-slate-800">Garmin 数据全能分析</h1>
+                <p class="text-slate-500 mt-1" id="fileStatus">请上传 Activities.csv (趋势) 或 Lap.csv (详情)</p>
+            </div>
+            
+            <div class="flex flex-wrap items-center gap-4">
+                <!-- Date Selection (Macro Only) -->
+                <div id="dateFilters" class="flex items-center gap-2 bg-white p-2 rounded-xl shadow-sm border border-slate-100">
+                    <div class="flex items-center gap-2">
+                        <label class="text-xs font-semibold text-slate-400 uppercase ml-1">开始</label>
+                        <input type="date" id="startDate" onchange="updateCustomDates()" class="border-none text-sm outline-none focus:ring-0">
+                    </div>
+                    <div class="h-4 w-px bg-slate-200"></div>
+                    <div class="flex items-center gap-2">
+                        <label class="text-xs font-semibold text-slate-400 uppercase">结束</label>
+                        <input type="date" id="endDate" onchange="updateCustomDates()" class="border-none text-sm outline-none focus:ring-0">
+                    </div>
+                </div>
+
+                <!-- Mode Tabs -->
+                <div class="flex bg-white rounded-xl p-1 shadow-sm border border-slate-200" id="modeTabs">
+                    <button onclick="switchTab('macro')" id="tab-macro" class="px-4 py-2 rounded-lg text-sm font-medium transition-all tab-active">趋势概览</button>
+                    <button onclick="switchTab('micro')" id="tab-micro" class="px-4 py-2 rounded-lg text-sm font-medium transition-all text-slate-500">单次计圈</button>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <input type="file" id="csvFile" accept=".csv" class="hidden">
+                    <button onclick="document.getElementById('csvFile').click()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                        </svg>
+                        上传 CSV
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- KPI Cards (Universal) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <p class="text-sm font-medium text-slate-500 uppercase" id="kpi-label-1">总距离</p>
+                <div class="flex items-baseline gap-2 mt-2">
+                    <span id="kpi-val-1" class="text-3xl font-bold text-slate-900">0.00</span>
+                    <span class="text-slate-500 font-medium" id="kpi-unit-1">km</span>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <p class="text-sm font-medium text-slate-500 uppercase" id="kpi-label-2">活动次数</p>
+                <div class="flex items-baseline gap-2 mt-2">
+                    <span id="kpi-val-2" class="text-3xl font-bold text-slate-900">0</span>
+                    <span class="text-slate-500 font-medium" id="kpi-unit-2">次</span>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <p class="text-sm font-medium text-slate-500 uppercase" id="kpi-label-3">平均配速</p>
+                <div class="flex items-baseline gap-2 mt-2">
+                    <span id="kpi-val-3" class="text-3xl font-bold text-slate-900">--:--</span>
+                    <span class="text-slate-500 font-medium">min/km</span>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <p class="text-sm font-medium text-slate-500 uppercase" id="kpi-label-4">平均心率</p>
+                <div class="flex items-baseline gap-2 mt-2">
+                    <span id="kpi-val-4" class="text-3xl font-bold text-slate-900">0</span>
+                    <span class="text-slate-500 font-medium">bpm</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Macro View Content -->
+        <div id="view-macro">
+            <!-- Heatmap -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-8">
+                <h3 class="text-lg font-semibold text-slate-800 mb-4">运动频率 (日历热力图)</h3>
+                <div id="heatmap-chart" class="chart-container" style="min-height: 250px;"></div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <h3 class="text-lg font-semibold text-slate-800 mb-4">配速与心率趋势</h3>
+                    <div id="trend-chart" class="chart-container"></div>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <h3 class="text-lg font-semibold text-slate-800 mb-4">有氧训练效果分布</h3>
+                    <div id="aerobic-chart" class="chart-container"></div>
+                </div>
+            </div>
+
+            <!-- PB Wall -->
+            <section class="mb-12">
+                <h3 class="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-7.714 2.143L11 21l-2.286-6.857L1 12l7.714-2.143L11 3z" />
+                    </svg>
+                    个人纪录墙 (PB Wall)
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="pb-card bg-gradient-to-br from-yellow-50 to-orange-50 p-6 rounded-2xl border border-yellow-100">
+                        <p class="text-yellow-700 font-bold uppercase text-xs tracking-wider">5 km</p>
+                        <h4 id="pb-5k-time" class="text-2xl font-black text-slate-800 mt-2">--:--</h4>
+                        <p id="pb-5k-date" class="text-slate-500 text-sm mt-1">尚未记录</p>
+                    </div>
+                    <div class="pb-card bg-gradient-to-br from-slate-50 to-slate-100 p-6 rounded-2xl border border-slate-200">
+                        <p class="text-slate-700 font-bold uppercase text-xs tracking-wider">10 km</p>
+                        <h4 id="pb-10k-time" class="text-2xl font-black text-slate-800 mt-2">--:--</h4>
+                        <p id="pb-10k-date" class="text-slate-500 text-sm mt-1">尚未记录</p>
+                    </div>
+                    <div class="pb-card bg-gradient-to-br from-orange-50 to-red-50 p-6 rounded-2xl border border-orange-100">
+                        <p class="text-orange-700 font-bold uppercase text-xs tracking-wider">半程马拉松</p>
+                        <h4 id="pb-half-time" class="text-2xl font-black text-slate-800 mt-2">--:--</h4>
+                        <p id="pb-half-date" class="text-slate-500 text-sm mt-1">尚未记录</p>
+                    </div>
+                    <div class="pb-card bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-2xl border border-blue-100">
+                        <p class="text-blue-700 font-bold uppercase text-xs tracking-wider">全程马拉松</p>
+                        <h4 id="pb-full-time" class="text-2xl font-black text-slate-800 mt-2">--:--</h4>
+                        <p id="pb-full-date" class="text-slate-500 text-sm mt-1">尚未记录</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Micro View Content -->
+        <div id="view-micro" class="hidden">
+            <!-- Lap Table -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 mb-8 overflow-hidden">
+                <div class="p-6 border-b border-slate-100">
+                    <h3 class="text-lg font-semibold text-slate-800">计圈明细数据</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table id="lapTable">
+                        <thead>
+                            <tr>
+                                <th>计圈</th>
+                                <th>累计时间</th>
+                                <th>平均配速</th>
+                                <th>平均心率</th>
+                                <th>最大心率</th>
+                                <th>累计爬升</th>
+                                <th>平均步频</th>
+                                <th>平均步长</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Frequency Distribution (Stacked Layout) -->
+            <div class="flex flex-col gap-8 mb-8">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <h3 class="text-lg font-semibold text-slate-800 mb-6 border-l-4 border-blue-600 pl-3">平均步长分布趋势 (m)</h3>
+                    <div id="micro-stride-chart" class="chart-container" style="height: 450px;"></div>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <h3 class="text-lg font-semibold text-slate-800 mb-6 border-l-4 border-red-500 pl-3">平均心率分布趋势 (bpm)</h3>
+                    <div id="micro-hr-chart" class="chart-container" style="height: 450px;"></div>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <h3 class="text-lg font-semibold text-slate-800 mb-6 border-l-4 border-green-500 pl-3">平均配速分布趋势 (MM:SS)</h3>
+                    <div id="micro-pace-chart" class="chart-container" style="height: 450px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Global State ---
+        let currentMode = 'macro'; // 'macro' or 'micro'
+        let allMacroActivities = [];
+        let filteredMacroActivities = [];
+        let microData = { laps: [], summaries: [] };
+        let chartInstances = {};
+
+        // --- Core Logic ---
+
+        document.getElementById('csvFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            document.getElementById('fileStatus').innerText = `已加载: ${file.name}`;
+
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                encoding: "UTF-8",
+                complete: function(results) {
+                    detectAndProcess(results.data);
+                }
+            });
+        });
+
+        function detectAndProcess(data) {
+            if (!data || data.length === 0) return;
+            const headers = Object.keys(data[0]);
+            
+            // Detection Logic
+            const isMicro = headers.some(h => h.includes('计圈') || h.includes('Lap'));
+            
+            if (isMicro) {
+                currentMode = 'micro';
+                processMicro(data);
+                switchTab('micro');
+                document.getElementById('dateFilters').classList.add('hidden');
+            } else {
+                currentMode = 'macro';
+                processMacro(data);
+                switchTab('macro');
+                document.getElementById('dateFilters').classList.remove('hidden');
+            }
+        }
+
+        // --- Macro Processing (Activities.csv) ---
+        function processMacro(data) {
+            if (!data || data.length === 0) return;
+            const keys = Object.keys(data[0]);
+            
+            // 鲁棒的列识别：精确匹配优先 + 模糊匹配排除干扰
+            const findColumn = (names, excludeNames = []) => {
+                // 1. 优先尝试精确匹配
+                let found = keys.find(k => {
+                    const kLower = k.toLowerCase().trim();
+                    return names.some(n => n.toLowerCase() === kLower);
+                });
+                if (found) return found;
+
+                // 2. 尝试模糊匹配，但排除干扰项（如匹配 TE 时排除 Temperature）
+                return keys.find(k => {
+                    const kLower = k.toLowerCase().trim();
+                    const isExcluded = excludeNames.some(e => kLower.includes(e.toLowerCase()));
+                    return !isExcluded && names.some(n => kLower.includes(n.toLowerCase()));
+                });
+            };
+
+            const colDate = findColumn(['日期', 'Date', '开始时间', 'Start Time']);
+            const colDist = findColumn(['距离', 'Distance', '里程']);
+            const colPace = findColumn(['平均配速', 'Avg Pace', '配速']);
+            const colHR = findColumn(['平均心率', 'Avg HR', '心率']);
+            const colAerobic = findColumn(['有氧训练效果', 'Aerobic Training Effect', 'Aerobic TE', '有氧'], ['温度', 'Temp']);
+
+            allMacroActivities = data.map(row => {
+                const d = new Date(row[colDate]);
+                return {
+                    date: d,
+                    dateStr: formatDate(d),
+                    distance: parseVal(row[colDist]),
+                    paceSec: parsePace(row[colPace]),
+                    hr: parseVal(row[colHR]),
+                    aerobic: parseVal(row[colAerobic])
+                };
+            }).filter(a => !isNaN(a.date.getTime()) && a.distance > 0).sort((a, b) => a.date - b.date);
+
+            if (allMacroActivities.length > 0) {
+                document.getElementById('startDate').value = allMacroActivities[0].dateStr;
+                document.getElementById('endDate').value = allMacroActivities[allMacroActivities.length - 1].dateStr;
+            }
+
+            updateCustomDates();
+            calculatePBs(allMacroActivities);
+        }
+
+        function updateCustomDates() {
+            const startStr = document.getElementById('startDate').value;
+            const endStr = document.getElementById('endDate').value;
+            
+            if (!startStr || !endStr) {
+                filteredMacroActivities = [...allMacroActivities];
+            } else {
+                const start = new Date(startStr);
+                const end = new Date(endStr);
+                end.setHours(23, 59, 59);
+                filteredMacroActivities = allMacroActivities.filter(a => a.date >= start && a.date <= end);
+            }
+            renderMacroDashboard();
+        }
+
+        function renderMacroDashboard() {
+            // KPIs
+            const totalDist = filteredMacroActivities.reduce((sum, a) => sum + a.distance, 0);
+            const totalCount = filteredMacroActivities.length;
+            const avgPace = totalDist > 0 ? filteredMacroActivities.reduce((sum, a) => sum + (a.paceSec * a.distance), 0) / totalDist : 0;
+            const avgHR = totalDist > 0 ? filteredMacroActivities.reduce((sum, a) => sum + (a.hr * a.distance), 0) / totalDist : 0;
+
+            updateKPIs('距离', totalDist.toFixed(2), 'km', '总次数', totalCount, '次', formatPace(avgPace), Math.round(avgHR));
+            
+            renderMacroCharts();
+            calculatePBs(filteredMacroActivities);
+        }
+
+
+        // --- Micro Processing (Lap.csv) ---
+        function processMicro(data) {
+            microData.laps = [];
+            microData.summaries = [];
+
+            data.forEach(row => {
+                const lapRaw = String(row["计圈"] || row["Lap"] || "").trim();
+                if (!lapRaw) return;
+
+                const item = {
+                    lap: lapRaw,
+                    totalTime: (row["累积时间"] || row["Time"] || "").split('.')[0],
+                    avgPace: formatPaceStr(row["平均配速分钟/千米"] || row["Avg Pace"]),
+                    avgHR: parseInt(row["平均心率bpm"] || row["Avg HR"]) || 0,
+                    maxHR: parseInt(row["最大心率bpm"] || row["Max HR"]) || 0,
+                    climb: row["累计爬升米"] || row["Elev Gain"] || "0",
+                    avgCadence: row["平均步频每分钟步数"] || row["Avg Cadence"] || "0",
+                    avgStride: parseFloat(row["平均步长米"] || row["Avg Stride Length"]) || 0,
+                    isSummary: isNaN(parseInt(lapRaw))
+                };
+
+                if (item.isSummary) microData.summaries.push(item);
+                else microData.laps.push(item);
+            });
+
+            renderMicroDashboard();
+        }
+
+        function renderMicroDashboard() {
+            // Table
+            const tbody = document.querySelector('#lapTable tbody');
+            tbody.innerHTML = '';
+            [...microData.laps, ...microData.summaries].forEach(row => {
+                const tr = document.createElement('tr');
+                if (row.isSummary) tr.className = 'summary-row';
+                tr.innerHTML = `
+                    <td>${row.lap}</td><td>${row.totalTime}</td><td>${row.avgPace}</td>
+                    <td>${row.avgHR || '--'}</td><td>${row.maxHR || '--'}</td>
+                    <td>${row.climb}</td><td>${row.avgCadence}</td><td>${row.avgStride.toFixed(2)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // KPIs (from first summary or average of laps)
+            const summary = microData.summaries[0] || {};
+            const avgHR = microData.laps.reduce((s, l) => s + l.avgHR, 0) / (microData.laps.length || 1);
+            
+            updateKPIs('详情', microData.laps.length, '计圈', '总时长', summary.totalTime || '--', '', summary.avgPace || '--', Math.round(avgHR));
+
+            renderMicroCharts();
+        }
+
+        // --- UI Helpers ---
+
+        function switchTab(mode) {
+            currentMode = mode;
+            document.getElementById('view-macro').classList.toggle('hidden', mode !== 'macro');
+            document.getElementById('view-micro').classList.toggle('hidden', mode !== 'micro');
+            
+            document.getElementById('tab-macro').classList.toggle('tab-active', mode === 'macro');
+            document.getElementById('tab-macro').classList.toggle('text-slate-500', mode !== 'macro');
+            document.getElementById('tab-micro').classList.toggle('tab-active', mode === 'micro');
+            document.getElementById('tab-micro').classList.toggle('text-slate-500', mode !== 'micro');
+
+            // Resize charts
+            setTimeout(() => {
+                Object.values(chartInstances).forEach(c => c?.resize());
+            }, 10);
+        }
+
+        function updateKPIs(l1, v1, u1, l2, v2, u2, v3, v4) {
+            document.getElementById('kpi-label-1').innerText = l1;
+            document.getElementById('kpi-val-1').innerText = v1;
+            document.getElementById('kpi-unit-1').innerText = u1;
+            document.getElementById('kpi-label-2').innerText = l2;
+            document.getElementById('kpi-val-2').innerText = v2;
+            document.getElementById('kpi-unit-2').innerText = u2;
+            document.getElementById('kpi-val-3').innerText = v3;
+            document.getElementById('kpi-val-4').innerText = v4;
+        }
+
+        // --- Charting ---
+
+        function renderMacroCharts() {
+            // Heatmap (Filtered)
+            const heatmapDom = document.getElementById('heatmap-chart');
+            if (!chartInstances.heatmap) chartInstances.heatmap = echarts.init(heatmapDom);
+            
+            const dataMap = new Map();
+            filteredMacroActivities.forEach(a => dataMap.set(a.dateStr, (dataMap.get(a.dateStr) || 0) + a.distance));
+            
+            const startStr = document.getElementById('startDate').value;
+            const endStr = document.getElementById('endDate').value;
+            // 确定日历显示范围：如果有筛选则用筛选范围，否则默认显示近一年
+            const calendarRange = (startStr && endStr) ? [startStr, endStr] : [new Date().setFullYear(new Date().getFullYear() - 1), new Date()];
+
+            chartInstances.heatmap.setOption({
+                tooltip: { position: 'top', formatter: p => `${p.data[0]}: ${p.data[1].toFixed(2)} km` },
+                visualMap: {
+                    min: 0, max: 20, type: 'piecewise', orient: 'horizontal', left: 'center', top: 0,
+                    pieces: [{gt: 15, color: '#1e3a8a'}, {gt: 10, lte: 15, color: '#2563eb'}, {gt: 5, lte: 10, color: '#60a5fa'}, {gt: 0, lte: 5, color: '#bfdbfe'}, {value: 0, color: '#f1f5f9'}]
+                },
+                calendar: {
+                    top: 60, left: 30, right: 30, cellSize: ['auto', 20],
+                    range: calendarRange,
+                    itemStyle: { borderWidth: 3, borderColor: '#fff' },
+                    splitLine: { show: false }, dayLabel: { nameMap: 'ZH' }, monthLabel: { nameMap: 'ZH' }
+                },
+                series: [{ type: 'heatmap', coordinateSystem: 'calendar', data: Array.from(dataMap.entries()) }]
+            }, true);
+
+            // Trend (Filtered)
+            const trendDom = document.getElementById('trend-chart');
+            if (!chartInstances.trend) chartInstances.trend = echarts.init(trendDom);
+            chartInstances.trend.setOption({
+                tooltip: { trigger: 'axis' },
+                legend: { data: ['配速', '心率'], bottom: 0 },
+                xAxis: { type: 'category', data: filteredMacroActivities.map(a => a.dateStr) },
+                yAxis: [{ type: 'value', name: '配速', inverse: true, axisLabel: { formatter: v => formatPace(v) } }, { type: 'value', name: '心率', min: 100 }],
+                series: [
+                    { name: '配速', type: 'line', smooth: true, data: filteredMacroActivities.map(a => a.paceSec), itemStyle: { color: '#2563eb' } },
+                    { name: '心率', type: 'line', yAxisIndex: 1, smooth: true, data: filteredMacroActivities.map(a => a.hr), itemStyle: { color: '#ef4444' } }
+                ]
+            }, true);
+
+            // Aerobic (Filtered)
+            const aeroDom = document.getElementById('aerobic-chart');
+            if (!chartInstances.aerobic) chartInstances.aerobic = echarts.init(aeroDom);
+            const dist = [0,0,0,0,0];
+            filteredMacroActivities.forEach(a => {
+                const score = a.aerobic;
+                if (score >= 0 && score < 1) dist[0]++;
+                else if (score >= 1 && score < 2) dist[1]++;
+                else if (score >= 2 && score < 3) dist[2]++;
+                else if (score >= 3 && score < 4) dist[3]++;
+                else if (score >= 4 && score <= 5) dist[4]++;
+            });
+            chartInstances.aerobic.setOption({
+                tooltip: { 
+                    trigger: 'axis', 
+                    formatter: params => `${params[0].name.replace('\n', ' ')}<br/>活动次数: ${params[0].data.value} 次`
+                },
+                grid: { top: 40, left: 50, right: 30, bottom: 60 },
+                xAxis: { 
+                    type: 'category', 
+                    data: ['0-1\n极轻', '1-2\n恢复', '2-3\n维持', '3-4\n提高', '4-5\n显著'],
+                    axisLabel: { interval: 0, fontSize: 11 }
+                },
+                yAxis: { type: 'value', name: '次数', minInterval: 1 },
+                series: [{ 
+                    name: '有氧效果',
+                    type: 'bar', 
+                    data: dist.map((v, i) => ({ 
+                        value: v, 
+                        itemStyle: { color: ['#94a3b8', '#10b981', '#3b82f6', '#f59e0b', '#ef4444'][i] } 
+                    })),
+                    barMaxWidth: 60,
+                    label: { show: true, position: 'top', formatter: '{c}', color: '#64748b', fontWeight: 'bold' },
+                    itemStyle: { borderRadius: [4, 4, 0, 0] }
+                }]
+            }, true);
+        }
+
+        function renderMicroCharts() {
+            const createFreqChart = (id, key, label, color) => {
+                const dom = document.getElementById(id);
+                if (!chartInstances[id]) chartInstances[id] = echarts.init(dom);
+                
+                const raw = microData.laps.map(l => (key === 'avgStride' ? l[key].toFixed(2) : l[key]));
+                const counts = {};
+                raw.forEach(v => counts[v] = (counts[v] || 0) + 1);
+                const data = Object.keys(counts).map(k => ({ v: k, c: counts[k] })).sort((a, b) => {
+                    return isNaN(a.v) ? String(a.v).localeCompare(b.v) : parseFloat(a.v) - parseFloat(b.v);
+                });
+
+                chartInstances[id].setOption({
+                    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                    dataZoom: [
+                        { type: 'slider', start: 0, end: 100, bottom: 10 },
+                        { type: 'inside', start: 0, end: 100 }
+                    ],
+                    grid: { left: '4%', right: '4%', bottom: '80px', top: '40px', containLabel: true },
+                    xAxis: { 
+                        type: 'category', 
+                        data: data.map(d => d.v), 
+                        name: label,
+                        axisLabel: { interval: 0, rotate: 30 }
+                    },
+                    yAxis: { type: 'value', name: '频数', splitLine: { lineStyle: { type: 'dashed' } } },
+                    series: [{ 
+                        type: 'bar', 
+                        data: data.map(d => d.c), 
+                        barMinWidth: 20,
+                        barMaxWidth: 60,
+                        label: { show: true, position: 'top' },
+                        itemStyle: { color: color, borderRadius: [5, 5, 0, 0] } 
+                    }]
+                }, true);
+            };
+
+            createFreqChart('micro-stride-chart', 'avgStride', '步长(m)', '#007aff');
+            createFreqChart('micro-hr-chart', 'avgHR', '心率(bpm)', '#ff3b30');
+            createFreqChart('micro-pace-chart', 'avgPace', '配速', '#34c759');
+        }
+
+        // --- Utilities ---
+        function parseVal(v) { 
+            if (!v) return 0;
+            const m = v.toString().replace(',','.').match(/(\d+(\.\d+)?)/);
+            return m ? parseFloat(m[1]) : 0;
+        }
+
+        function parsePace(s) {
+            if (!s || !s.includes(':')) return 0;
+            const p = s.split(':');
+            return p.length === 2 ? parseInt(p[0]) * 60 + parseInt(p[1]) : 0;
+        }
+
+        function formatDuration(sec) {
+            if (!sec || isNaN(sec)) return "--:--";
+            const h = Math.floor(sec / 3600);
+            const m = Math.floor((sec % 3600) / 60);
+            const s = Math.round(sec % 60);
+            if (h > 0) {
+                return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            }
+            return `${m}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function formatPace(sec) {
+            if (!sec || isNaN(sec)) return "--:--";
+            return `${Math.floor(sec / 60)}:${Math.round(sec % 60).toString().padStart(2, '0')}`;
+        }
+
+        function formatPaceStr(s) {
+            return (s || "").trim().split('.')[0] || "0:00";
+        }
+
+        function formatDate(d) {
+            return `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}-${d.getDate().toString().padStart(2,'0')}`;
+        }
+
+        function calculatePBs(activities) {
+            const targets = [
+                { id: '5k', t: 5.0 }, 
+                { id: '10k', t: 10.0 }, 
+                { id: 'half', t: 21.0975 }, 
+                { id: 'full', t: 42.195 }
+            ];
+            
+            targets.forEach(d => {
+                const candidates = activities.filter(a => a.distance >= d.t);
+                const timeEl = document.getElementById(`pb-${d.id}-time`);
+                const dateEl = document.getElementById(`pb-${d.id}-date`);
+
+                if (candidates.length > 0) {
+                    const best = candidates.reduce((p, c) => p.paceSec < c.paceSec ? p : c);
+                    // 统一使用 formatDuration 自动处理是否显示小时
+                    timeEl.innerText = formatDuration(best.paceSec * d.t);
+                    dateEl.innerText = best.dateStr;
+                } else {
+                    timeEl.innerText = "--:--";
+                    dateEl.innerText = "未匹配记录";
+                }
+            });
+        }
+
+        window.addEventListener('resize', () => Object.values(chartInstances).forEach(c => c?.resize()));
+    </script>
+</body>
+</html>
