@@ -49,8 +49,8 @@
 
                 <!-- Mode Tabs -->
                 <div class="flex bg-white rounded-xl p-1 shadow-sm border border-slate-200" id="modeTabs">
-                    <button onclick="switchTab('macro')" id="tab-macro" class="px-4 py-2 rounded-lg text-sm font-medium transition-all tab-active">趋势概览</button>
-                    <button onclick="switchTab('micro')" id="tab-micro" class="px-4 py-2 rounded-lg text-sm font-medium transition-all text-slate-500">单次计圈</button>
+                    <button onclick="switchTab('micro')" id="tab-micro" class="px-4 py-2 rounded-lg text-sm font-medium transition-all tab-active">单次计圈</button>
+                    <button onclick="switchTab('macro')" id="tab-macro" class="px-4 py-2 rounded-lg text-sm font-medium transition-all text-slate-500">趋势概览</button>
                 </div>
 
                 <div class="flex items-center gap-3">
@@ -97,60 +97,8 @@
             </div>
         </div>
 
-        <!-- Macro View Content -->
-        <div id="view-macro">
-            <!-- Heatmap -->
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-8">
-                <h3 class="text-lg font-semibold text-slate-800 mb-4">运动频率 (日历热力图)</h3>
-                <div id="heatmap-chart" class="chart-container" style="min-height: 250px;"></div>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                    <h3 class="text-lg font-semibold text-slate-800 mb-4">配速与心率趋势</h3>
-                    <div id="trend-chart" class="chart-container"></div>
-                </div>
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                    <h3 class="text-lg font-semibold text-slate-800 mb-4">有氧训练效果分布</h3>
-                    <div id="aerobic-chart" class="chart-container"></div>
-                </div>
-            </div>
-
-            <!-- PB Wall -->
-            <section class="mb-12">
-                <h3 class="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-7.714 2.143L11 21l-2.286-6.857L1 12l7.714-2.143L11 3z" />
-                    </svg>
-                    个人纪录墙 (PB Wall)
-                </h3>
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <div class="pb-card bg-gradient-to-br from-yellow-50 to-orange-50 p-6 rounded-2xl border border-yellow-100">
-                        <p class="text-yellow-700 font-bold uppercase text-xs tracking-wider">5 km</p>
-                        <h4 id="pb-5k-time" class="text-2xl font-black text-slate-800 mt-2">--:--</h4>
-                        <p id="pb-5k-date" class="text-slate-500 text-sm mt-1">尚未记录</p>
-                    </div>
-                    <div class="pb-card bg-gradient-to-br from-slate-50 to-slate-100 p-6 rounded-2xl border border-slate-200">
-                        <p class="text-slate-700 font-bold uppercase text-xs tracking-wider">10 km</p>
-                        <h4 id="pb-10k-time" class="text-2xl font-black text-slate-800 mt-2">--:--</h4>
-                        <p id="pb-10k-date" class="text-slate-500 text-sm mt-1">尚未记录</p>
-                    </div>
-                    <div class="pb-card bg-gradient-to-br from-orange-50 to-red-50 p-6 rounded-2xl border border-orange-100">
-                        <p class="text-orange-700 font-bold uppercase text-xs tracking-wider">半程马拉松</p>
-                        <h4 id="pb-half-time" class="text-2xl font-black text-slate-800 mt-2">--:--</h4>
-                        <p id="pb-half-date" class="text-slate-500 text-sm mt-1">尚未记录</p>
-                    </div>
-                    <div class="pb-card bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-2xl border border-blue-100">
-                        <p class="text-blue-700 font-bold uppercase text-xs tracking-wider">全程马拉松</p>
-                        <h4 id="pb-full-time" class="text-2xl font-black text-slate-800 mt-2">--:--</h4>
-                        <p id="pb-full-date" class="text-slate-500 text-sm mt-1">尚未记录</p>
-                    </div>
-                </div>
-            </section>
-        </div>
-
         <!-- Micro View Content -->
-        <div id="view-micro" class="hidden">
+        <div id="view-micro">
             <!-- Lap Table -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-100 mb-8 overflow-hidden">
                 <div class="p-6 border-b border-slate-100">
@@ -191,11 +139,138 @@
                 </div>
             </div>
         </div>
+
+        <!-- Macro View Content -->
+        <div id="view-macro" class="hidden">
+            <!-- Heatmap -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-8">
+                <h3 class="text-lg font-semibold text-slate-800 mb-4">运动频率 (日历热力图)</h3>
+                <div id="heatmap-chart" class="chart-container" style="min-height: 250px;"></div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <h3 class="text-lg font-semibold text-slate-800 mb-4">配速与心率趋势</h3>
+                    <div id="trend-chart" class="chart-container"></div>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <h3 class="text-lg font-semibold text-slate-800 mb-4">有氧训练效果分布</h3>
+                    <div id="aerobic-chart" class="chart-container"></div>
+                </div>
+            </div>
+
+            <!-- Macro Statistics Tables -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <!-- Yearly Stats -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                    <div class="p-6 border-b border-slate-100 bg-slate-50/50">
+                        <h3 class="text-lg font-semibold text-slate-800">按年统计汇总</h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table id="yearlyStatsTable" class="min-w-full">
+                            <thead>
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">年份</th>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">运动次数</th>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">总距离 (km)</th>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">平均距离 (km)</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Monthly Stats -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                    <div class="p-6 border-b border-slate-100 bg-slate-50/50">
+                        <h3 class="text-lg font-semibold text-slate-800">按月统计汇总</h3>
+                    </div>
+                    <div class="overflow-x-auto max-h-[500px]">
+                        <table id="monthlyStatsTable" class="min-w-full">
+                            <thead>
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">月份</th>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">运动次数</th>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">总距离 (km)</th>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">平均距离 (km)</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PB Wall -->
+            <section class="mb-12">
+                <h3 class="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-7.714 2.143L11 21l-2.286-6.857L1 12l7.714-2.143L11 3z" />
+                    </svg>
+                    最快记录 (PB Wall)
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="pb-card bg-gradient-to-br from-yellow-50 to-orange-50 p-6 rounded-2xl border border-yellow-100">
+                        <p class="text-yellow-700 font-bold uppercase text-xs tracking-wider">5 km</p>
+                        <h4 id="pb-5k-time" class="text-2xl font-black text-slate-800 mt-2">--:--</h4>
+                        <p id="pb-5k-date" class="text-slate-500 text-sm mt-1">尚未记录</p>
+                    </div>
+                    <div class="pb-card bg-gradient-to-br from-slate-50 to-slate-100 p-6 rounded-2xl border border-slate-200">
+                        <p class="text-slate-700 font-bold uppercase text-xs tracking-wider">10 km</p>
+                        <h4 id="pb-10k-time" class="text-2xl font-black text-slate-800 mt-2">--:--</h4>
+                        <p id="pb-10k-date" class="text-slate-500 text-sm mt-1">尚未记录</p>
+                    </div>
+                    <div class="pb-card bg-gradient-to-br from-orange-50 to-red-50 p-6 rounded-2xl border border-orange-100">
+                        <p class="text-orange-700 font-bold uppercase text-xs tracking-wider">半程马拉松</p>
+                        <h4 id="pb-half-time" class="text-2xl font-black text-slate-800 mt-2">--:--</h4>
+                        <p id="pb-half-date" class="text-slate-500 text-sm mt-1">尚未记录</p>
+                    </div>
+                    <div class="pb-card bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-2xl border border-blue-100">
+                        <p class="text-blue-700 font-bold uppercase text-xs tracking-wider">全程马拉松</p>
+                        <h4 id="pb-full-time" class="text-2xl font-black text-slate-800 mt-2">--:--</h4>
+                        <p id="pb-full-date" class="text-slate-500 text-sm mt-1">尚未记录</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PW Wall (New) -->
+            <section class="mb-12">
+                <h3 class="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    最慢记录 (PW Wall)
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="pb-card bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                        <p class="text-slate-500 font-bold uppercase text-xs tracking-wider">5 km</p>
+                        <h4 id="pw-5k-time" class="text-2xl font-black text-slate-400 mt-2">--:--</h4>
+                        <p id="pw-5k-date" class="text-slate-500 text-sm mt-1">尚未记录</p>
+                    </div>
+                    <div class="pb-card bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                        <p class="text-slate-500 font-bold uppercase text-xs tracking-wider">10 km</p>
+                        <h4 id="pw-10k-time" class="text-2xl font-black text-slate-400 mt-2">--:--</h4>
+                        <p id="pw-10k-date" class="text-slate-500 text-sm mt-1">尚未记录</p>
+                    </div>
+                    <div class="pb-card bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                        <p class="text-slate-500 font-bold uppercase text-xs tracking-wider">半程马拉松</p>
+                        <h4 id="pw-half-time" class="text-2xl font-black text-slate-400 mt-2">--:--</h4>
+                        <p id="pw-half-date" class="text-slate-500 text-sm mt-1">尚未记录</p>
+                    </div>
+                    <div class="pb-card bg-slate-50 p-6 rounded-2xl border border-slate-200">
+                        <p class="text-slate-500 font-bold uppercase text-xs tracking-wider">全程马拉松</p>
+                        <h4 id="pw-full-time" class="text-2xl font-black text-slate-400 mt-2">--:--</h4>
+                        <p id="pw-full-date" class="text-slate-500 text-sm mt-1">尚未记录</p>
+                    </div>
+                </div>
+            </section>
+        </div>
     </div>
 
     <script>
         // --- Global State ---
-        let currentMode = 'macro'; // 'macro' or 'micro'
+        let currentMode = 'micro'; // 'macro' or 'micro'
         let allMacroActivities = [];
         let filteredMacroActivities = [];
         let microData = { laps: [], summaries: [] };
@@ -313,9 +388,53 @@
             updateKPIs('距离', totalDist.toFixed(2), 'km', '总次数', totalCount, '次', formatPace(avgPace), Math.round(avgHR));
             
             renderMacroCharts();
+            renderMacroStatsTables();
             calculatePBs(filteredMacroActivities);
+            calculatePWs(filteredMacroActivities);
         }
 
+        function renderMacroStatsTables() {
+            const yearlyMap = new Map();
+            const monthlyMap = new Map();
+
+            filteredMacroActivities.forEach(a => {
+                const year = a.date.getFullYear().toString();
+                const month = `${year}-${(a.date.getMonth() + 1).toString().padStart(2, '0')}`;
+
+                const updateMap = (map, key) => {
+                    const stats = map.get(key) || { count: 0, distance: 0 };
+                    stats.count += 1;
+                    stats.distance += a.distance;
+                    map.set(key, stats);
+                };
+
+                updateMap(yearlyMap, year);
+                updateMap(monthlyMap, month);
+            });
+
+            const renderTable = (tableId, map, keyLabel) => {
+                const tbody = document.querySelector(`#${tableId} tbody`);
+                tbody.innerHTML = '';
+                const sortedKeys = Array.from(map.keys()).sort((a, b) => b.localeCompare(a));
+                
+                sortedKeys.forEach(key => {
+                    const stats = map.get(key);
+                    const avg = stats.distance / stats.count;
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-slate-50 transition-colors';
+                    tr.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">${key}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">${stats.count}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">${stats.distance.toFixed(2)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">${avg.toFixed(2)}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            };
+
+            renderTable('yearlyStatsTable', yearlyMap, '年份');
+            renderTable('monthlyStatsTable', monthlyMap, '月份');
+        }
 
         // --- Micro Processing (Lap.csv) ---
         function processMicro(data) {
@@ -561,14 +680,14 @@
 
         function calculatePBs(activities) {
             const targets = [
-                { id: '5k', t: 5.0 }, 
-                { id: '10k', t: 10.0 }, 
-                { id: 'half', t: 21.0975 }, 
-                { id: 'full', t: 42.195 }
+                { id: '5k', t: 5.0, max: 10.0 }, 
+                { id: '10k', t: 10.0, max: 21.0975 }, 
+                { id: 'half', t: 21.0975, max: 42.195 }, 
+                { id: 'full', t: 42.195, max: 43.0 }
             ];
             
             targets.forEach(d => {
-                const candidates = activities.filter(a => a.distance >= d.t);
+                const candidates = activities.filter(a => a.distance >= d.t && a.distance < d.max);
                 const timeEl = document.getElementById(`pb-${d.id}-time`);
                 const dateEl = document.getElementById(`pb-${d.id}-date`);
 
@@ -577,6 +696,30 @@
                     // 统一使用 formatDuration 自动处理是否显示小时
                     timeEl.innerText = formatDuration(best.paceSec * d.t);
                     dateEl.innerText = best.dateStr;
+                } else {
+                    timeEl.innerText = "--:--";
+                    dateEl.innerText = "未匹配记录";
+                }
+            });
+        }
+
+        function calculatePWs(activities) {
+            const targets = [
+                { id: '5k', t: 5.0, max: 10.0 }, 
+                { id: '10k', t: 10.0, max: 21.0975 }, 
+                { id: 'half', t: 21.0975, max: 42.195 }, 
+                { id: 'full', t: 42.195, max: 43.0 }
+            ];
+            
+            targets.forEach(d => {
+                const candidates = activities.filter(a => a.distance >= d.t && a.distance < d.max);
+                const timeEl = document.getElementById(`pw-${d.id}-time`);
+                const dateEl = document.getElementById(`pw-${d.id}-date`);
+
+                if (candidates.length > 0) {
+                    const worst = candidates.reduce((p, c) => p.paceSec > c.paceSec ? p : c);
+                    timeEl.innerText = formatDuration(worst.paceSec * d.t);
+                    dateEl.innerText = worst.dateStr;
                 } else {
                     timeEl.innerText = "--:--";
                     dateEl.innerText = "未匹配记录";
