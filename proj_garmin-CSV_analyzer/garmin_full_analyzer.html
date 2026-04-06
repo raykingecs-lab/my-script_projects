@@ -99,6 +99,23 @@
 
         <!-- Micro View Content -->
         <div id="view-micro">
+            <!-- CSV Guide -->
+            <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-8 rounded-r-xl">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-blue-700">
+                            <span class="font-bold">获得 CSV 方法：</span>
+                            登录 <a href="https://connect.garmin.cn" target="_blank" class="underline hover:text-blue-800">https://connect.garmin.cn</a>，在活动详细页面，点击右上角齿轮图标，选择 <span class="font-semibold">“将分段导出到 CSV”</span>。
+                        </p>
+                    </div>
+                </div>
+            </div>
+
             <!-- Lap Table -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-100 mb-8 overflow-hidden">
                 <div class="p-6 border-b border-slate-100">
@@ -142,6 +159,23 @@
 
         <!-- Macro View Content -->
         <div id="view-macro" class="hidden">
+            <!-- CSV Guide (Macro) -->
+            <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-8 rounded-r-xl">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0 mt-0.5">
+                        <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-blue-700 leading-relaxed">
+                            <span class="font-bold">获得 CSV 方法：</span>
+                            登录 <a href="https://connect.garmin.cn" target="_blank" class="underline hover:text-blue-800">https://connect.garmin.cn</a>，点击左侧侧边栏的 <span class="font-semibold">“活动” (Activities) -> “所有活动” (All Activities)</span>。将页面向下滚动，直到加载出所有想要导出的活动（网页采用瀑布流加载）。点击页面右上角的 <span class="font-semibold">“导出为 CSV 文件”</span>。
+                        </p>
+                    </div>
+                </div>
+            </div>
+
             <!-- Heatmap -->
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-8">
                 <h3 class="text-lg font-semibold text-slate-800 mb-4">运动频率 (日历热力图)</h3>
@@ -370,9 +404,13 @@
             if (!startStr || !endStr) {
                 filteredMacroActivities = [...allMacroActivities];
             } else {
-                const start = new Date(startStr);
-                const end = new Date(endStr);
-                end.setHours(23, 59, 59);
+                // 手动拆分日期以确保使用本地时间（避免 Date(string) 默认解析为 UTC）
+                const [sY, sM, sD] = startStr.split('-').map(Number);
+                const [eY, eM, eD] = endStr.split('-').map(Number);
+                
+                const start = new Date(sY, sM - 1, sD, 0, 0, 0);
+                const end = new Date(eY, eM - 1, eD, 23, 59, 59);
+                
                 filteredMacroActivities = allMacroActivities.filter(a => a.date >= start && a.date <= end);
             }
             renderMacroDashboard();
