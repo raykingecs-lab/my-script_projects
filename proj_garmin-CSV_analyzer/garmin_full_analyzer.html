@@ -182,6 +182,12 @@
                 <div id="heatmap-chart" class="chart-container" style="min-height: 250px;"></div>
             </div>
 
+            <!-- HR Heatmap (New) -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-8">
+                <h3 class="text-lg font-semibold text-slate-800 mb-4">平均心率强度 (热力图)</h3>
+                <div id="hr-heatmap-chart" class="chart-container" style="min-height: 250px;"></div>
+            </div>
+
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
                 <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
                     <h3 class="text-lg font-semibold text-slate-800 mb-4">配速与心率趋势</h3>
@@ -220,7 +226,7 @@
                     <div class="p-6 border-b border-slate-100 bg-slate-50/50">
                         <h3 class="text-lg font-semibold text-slate-800">按月统计汇总</h3>
                     </div>
-                    <div class="overflow-x-auto max-h-[500px]">
+                    <div class="overflow-x-auto max-h-[680px]">
                         <table id="monthlyStatsTable" class="min-w-full">
                             <thead>
                                 <tr>
@@ -228,6 +234,83 @@
                                     <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">运动次数</th>
                                     <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">总距离 (km)</th>
                                     <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">平均距离 (km)</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Distance Distribution Stats (New) -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-8">
+                <div class="p-6 border-b border-slate-100 bg-emerald-50/50 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-emerald-600" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+                    </svg>
+                    <h3 class="text-lg font-semibold text-slate-800">年度跑步距离区间统计</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table id="distStatsTable" class="min-w-full">
+                        <thead>
+                            <tr class="bg-slate-50">
+                                <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">年份</th>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">3-9 km 次数</th>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">10-19 km 次数</th>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">20-24 km 次数</th>
+                                <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">25-35 km 次数</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Race List Tables -->
+            <div class="grid grid-cols-1 gap-8 mb-8">
+                <!-- Full Marathon Races -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                    <div class="p-6 border-b border-slate-100 bg-red-50/50 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+                        </svg>
+                        <h3 class="text-lg font-semibold text-slate-800">马拉松赛事清单</h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table id="fullMarathonTable" class="min-w-full">
+                            <thead>
+                                <tr class="bg-slate-50">
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-16">编号</th>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">时间</th>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">赛事标题</th>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">完成时间</th>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">平均配速</th>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">平均心率</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Half Marathon Races -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                    <div class="p-6 border-b border-slate-100 bg-blue-50/50 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+                        </svg>
+                        <h3 class="text-lg font-semibold text-slate-800">半程马拉松赛事清单</h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table id="halfMarathonTable" class="min-w-full">
+                            <thead>
+                                <tr class="bg-slate-50">
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider w-16">编号</th>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">时间</th>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">赛事标题</th>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">完成时间</th>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">平均配速</th>
+                                    <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">平均心率</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100"></tbody>
@@ -374,6 +457,8 @@
             const colDist = findColumn(['距离', 'Distance', '里程']);
             const colPace = findColumn(['平均配速', 'Avg Pace', '配速']);
             const colHR = findColumn(['平均心率', 'Avg HR', '心率']);
+            const colTime = findColumn(['时间', 'Time', '耗时', '持续时间', 'Duration']);
+            const colTitle = findColumn(['标题', '名称', 'Title', 'Activity Name', 'Name']);
             const colAerobic = findColumn(['有氧训练效果', 'Aerobic Training Effect', 'Aerobic TE', '有氧'], ['温度', 'Temp']);
 
             allMacroActivities = data.map(row => {
@@ -381,9 +466,11 @@
                 return {
                     date: d,
                     dateStr: formatDate(d),
+                    title: row[colTitle] || '未命名活动',
                     distance: parseVal(row[colDist]),
                     paceSec: parsePace(row[colPace]),
                     hr: parseVal(row[colHR]),
+                    rawTime: row[colTime] || '--',
                     aerobic: parseVal(row[colAerobic])
                 };
             }).filter(a => !isNaN(a.date.getTime()) && a.distance > 0).sort((a, b) => a.date - b.date);
@@ -427,8 +514,105 @@
             
             renderMacroCharts();
             renderMacroStatsTables();
+            renderDistanceStats(filteredMacroActivities);
+            renderRaceLists(filteredMacroActivities);
             calculatePBs(filteredMacroActivities);
             calculatePWs(filteredMacroActivities);
+        }
+
+        function renderDistanceStats(activities) {
+            const tbody = document.querySelector('#distStatsTable tbody');
+            tbody.innerHTML = '';
+            
+            const statsMap = new Map(); // Year -> { b3: 0, b10: 0, b20: 0, b25: 0 }
+
+            activities.forEach(a => {
+                const year = a.date.getFullYear();
+                if (!statsMap.has(year)) {
+                    statsMap.set(year, { b3: 0, b10: 0, b20: 0, b25: 0 });
+                }
+                const s = statsMap.get(year);
+                const d = a.distance;
+
+                if (d >= 3 && d < 10) s.b3++;
+                else if (d >= 10 && d < 20) s.b10++;
+                else if (d >= 20 && d < 25) s.b20++;
+                else if (d >= 25 && d <= 35) s.b25++;
+            });
+
+            const sortedYears = Array.from(statsMap.keys()).sort((a, b) => b - a);
+            sortedYears.forEach(year => {
+                const s = statsMap.get(year);
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition-colors';
+                tr.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">${year}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">${s.b3} 次</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">${s.b10} 次</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">${s.b20} 次</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">${s.b25} 次</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            if (sortedYears.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-slate-400">无数据</td></tr>';
+            }
+        }
+
+        function renderRaceLists(activities) {
+            const fullTable = document.querySelector('#fullMarathonTable tbody');
+            const halfTable = document.querySelector('#halfMarathonTable tbody');
+            fullTable.innerHTML = '';
+            halfTable.innerHTML = '';
+
+            // 先筛选并识别
+            const fullRaces = activities.filter(a => {
+                const t = a.title || '';
+                return t.includes('马拉松') && !t.includes('半程') && !t.includes('半马');
+            });
+            const halfRaces = activities.filter(a => {
+                const t = a.title || '';
+                return t.includes('半马') || t.includes('半程马拉松');
+            });
+
+            // 找出最快配速
+            const getMinPace = (races) => races.length > 0 ? Math.min(...races.map(r => r.paceSec)) : null;
+            const minFullPace = getMinPace(fullRaces);
+            const minHalfPace = getMinPace(halfRaces);
+
+            const renderRows = (races, container, minPace) => {
+                let idx = 1;
+                // 按时间倒序排列渲染
+                [...races].sort((a, b) => b.date - a.date).forEach(a => {
+                    const isFastest = minPace && a.paceSec === minPace;
+                    const tr = document.createElement('tr');
+                    // 如果是最快的一场，加粗并赋予淡淡的奖杯金色背景
+                    tr.className = isFastest 
+                        ? 'bg-yellow-50/50 font-bold hover:bg-yellow-100/50 transition-colors' 
+                        : 'hover:bg-slate-50 transition-colors';
+                    
+                    tr.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm ${isFastest ? 'text-yellow-700' : 'text-slate-400'} font-mono">${idx++}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm ${isFastest ? 'text-slate-900' : 'text-slate-600'}">${a.dateStr}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm ${isFastest ? 'text-blue-700' : 'text-slate-900'}">
+                            ${a.title}
+                            ${isFastest ? '<span class="ml-2 text-xs bg-yellow-200 text-yellow-800 px-1.5 py-0.5 rounded-full">Best</span>' : ''}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm ${isFastest ? 'text-slate-900' : 'text-slate-600'} font-semibold">${a.rawTime}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm ${isFastest ? 'text-slate-900' : 'text-slate-600'}">${formatPace(a.paceSec)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm ${isFastest ? 'text-slate-900' : 'text-slate-600'}">${Math.round(a.hr)} bpm</td>
+                    `;
+                    container.appendChild(tr);
+                });
+
+                if (races.length === 0) {
+                    container.innerHTML = `<tr><td colspan="6" class="px-6 py-8 text-center text-slate-400">未检测到相关赛事活动</td></tr>`;
+                }
+            };
+
+            renderRows(fullRaces, fullTable, minFullPace);
+            renderRows(halfRaces, halfTable, minHalfPace);
         }
 
         function renderMacroStatsTables() {
@@ -558,32 +742,147 @@
         // --- Charting ---
 
         function renderMacroCharts() {
-            // Heatmap (Filtered)
+            // Heatmap logic with view switching
             const heatmapDom = document.getElementById('heatmap-chart');
             if (!chartInstances.heatmap) chartInstances.heatmap = echarts.init(heatmapDom);
             
-            const dataMap = new Map();
-            filteredMacroActivities.forEach(a => dataMap.set(a.dateStr, (dataMap.get(a.dateStr) || 0) + a.distance));
-            
+            // HR Heatmap logic
+            const hrHeatmapDom = document.getElementById('hr-heatmap-chart');
+            if (!chartInstances.hrHeatmap) chartInstances.hrHeatmap = echarts.init(hrHeatmapDom);
+
             const startStr = document.getElementById('startDate').value;
             const endStr = document.getElementById('endDate').value;
-            // 确定日历显示范围：如果有筛选则用筛选范围，否则默认显示近一年
-            const calendarRange = (startStr && endStr) ? [startStr, endStr] : [new Date().setFullYear(new Date().getFullYear() - 1), new Date()];
+            const startD = new Date(startStr);
+            const endD = new Date(endStr);
+            const diffDays = (endD - startD) / (1000 * 60 * 60 * 24);
 
-            chartInstances.heatmap.setOption({
-                tooltip: { position: 'top', formatter: p => `${p.data[0]}: ${p.data[1].toFixed(2)} km` },
-                visualMap: {
-                    min: 0, max: 20, type: 'piecewise', orient: 'horizontal', left: 'center', top: 0,
-                    pieces: [{gt: 15, color: '#1e3a8a'}, {gt: 10, lte: 15, color: '#2563eb'}, {gt: 5, lte: 10, color: '#60a5fa'}, {gt: 0, lte: 5, color: '#bfdbfe'}, {value: 0, color: '#f1f5f9'}]
-                },
-                calendar: {
-                    top: 60, left: 30, right: 30, cellSize: ['auto', 20],
-                    range: calendarRange,
-                    itemStyle: { borderWidth: 3, borderColor: '#fff' },
-                    splitLine: { show: false }, dayLabel: { nameMap: 'ZH' }, monthLabel: { nameMap: 'ZH' }
-                },
-                series: [{ type: 'heatmap', coordinateSystem: 'calendar', data: Array.from(dataMap.entries()) }]
-            }, true);
+            let heatmapOption = {};
+            let hrHeatmapOption = {};
+
+            if (diffDays <= 31) {
+                // --- Daily View ---
+                const dataMap = new Map();
+                const hrMap = new Map();
+                const hrCountMap = new Map();
+
+                filteredMacroActivities.forEach(a => {
+                    dataMap.set(a.dateStr, (dataMap.get(a.dateStr) || 0) + a.distance);
+                    // 每天心率取平均
+                    if (a.hr > 0) {
+                        hrMap.set(a.dateStr, (hrMap.get(a.dateStr) || 0) + a.hr);
+                        hrCountMap.set(a.dateStr, (hrCountMap.get(a.dateStr) || 0) + 1);
+                    }
+                });
+
+                const hrData = Array.from(hrMap.entries()).map(([date, sum]) => [date, Math.round(sum / hrCountMap.get(date))]);
+                const calendarRange = [startStr, endStr];
+
+                // Distance Heatmap Option
+                heatmapOption = {
+                    tooltip: { position: 'top', formatter: p => `${p.data[0]}: ${p.data[1].toFixed(2)} km` },
+                    visualMap: {
+                        min: 0, max: 20, type: 'piecewise', orient: 'horizontal', left: 'center', top: 0,
+                        pieces: [
+                            {gt: 15, color: '#1e3a8a', label: '> 15 km'}, {gt: 10, lte: 15, color: '#2563eb', label: '10-15 km'}, {gt: 5, lte: 10, color: '#60a5fa', label: '5-10 km'}, {gt: 0, lte: 5, color: '#bfdbfe', label: '1-5 km'}, {value: 0, color: '#f1f5f9', label: '0 km'}
+                        ]
+                    },
+                    calendar: {
+                        top: 60, left: 30, right: 30, cellSize: ['auto', 20],
+                        range: calendarRange,
+                        itemStyle: { borderWidth: 3, borderColor: '#fff' },
+                        splitLine: { show: false }, dayLabel: { nameMap: 'ZH' }, monthLabel: { nameMap: 'ZH' }
+                    },
+                    series: [{ type: 'heatmap', coordinateSystem: 'calendar', data: Array.from(dataMap.entries()) }]
+                };
+
+                // HR Heatmap Option
+                hrHeatmapOption = {
+                    tooltip: { position: 'top', formatter: p => `${p.data[0]}: ${p.data[1]} bpm` },
+                    visualMap: {
+                        min: 100, max: 180, type: 'piecewise', orient: 'horizontal', left: 'center', top: 0,
+                        pieces: [
+                            {gt: 170, color: '#ef4444', label: '极高 (>170)'}, 
+                            {gt: 155, lte: 170, color: '#f97316', label: '高 (155-170)'}, 
+                            {gt: 140, lte: 155, color: '#eab308', label: '中 (140-155)'}, 
+                            {gt: 120, lte: 140, color: '#22c55e', label: '低 (120-140)'}, 
+                            {gt: 0, lte: 120, color: '#3b82f6', label: '极低 (<120)'},
+                            {value: 0, color: '#f1f5f9', label: '无数据'}
+                        ]
+                    },
+                    calendar: {
+                        top: 60, left: 30, right: 30, cellSize: ['auto', 20],
+                        range: calendarRange,
+                        itemStyle: { borderWidth: 3, borderColor: '#fff' },
+                        splitLine: { show: false }, dayLabel: { nameMap: 'ZH' }, monthLabel: { nameMap: 'ZH' }
+                    },
+                    series: [{ type: 'heatmap', coordinateSystem: 'calendar', data: hrData }]
+                };
+
+            } else {
+                // --- Monthly View ---
+                const monthlyDist = new Map();
+                const monthlyHRSum = new Map();
+                const yearsSet = new Set();
+                
+                filteredMacroActivities.forEach(a => {
+                    const y = a.date.getFullYear();
+                    const m = a.date.getMonth();
+                    const key = `${y}-${m}`;
+                    monthlyDist.set(key, (monthlyDist.get(key) || 0) + a.distance);
+                    if (a.hr > 0) {
+                        // 加权平均心率：(hr * distance) 的累加 / 总 distance
+                        monthlyHRSum.set(key, (monthlyHRSum.get(key) || 0) + (a.hr * a.distance));
+                    }
+                    yearsSet.add(y);
+                });
+
+                const sortedYears = Array.from(yearsSet).sort((a, b) => a - b);
+                const monthLabels = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+                const gridData = [];
+                const hrGridData = [];
+
+                sortedYears.forEach((y, yIdx) => {
+                    for (let m = 0; m < 12; m++) {
+                        const key = `${y}-${m}`;
+                        const dVal = monthlyDist.get(key) || 0;
+                        gridData.push([m, yIdx, dVal.toFixed(2)]);
+                        
+                        const hVal = dVal > 0 ? (monthlyHRSum.get(key) / dVal) : 0;
+                        hrGridData.push([m, yIdx, Math.round(hVal)]);
+                    }
+                });
+
+                // Distance Heatmap Grid
+                heatmapOption = {
+                    tooltip: { position: 'top', formatter: p => `${sortedYears[p.data[1]]}年${monthLabels[p.data[0]]}: ${p.data[2]} km` },
+                    grid: { top: 60, bottom: 30, left: 60, right: 30 },
+                    xAxis: { type: 'category', data: monthLabels },
+                    yAxis: { type: 'category', data: sortedYears.map(String) },
+                    visualMap: {
+                        min: 0, max: 200, type: 'piecewise', orient: 'horizontal', left: 'center', top: 0,
+                        pieces: [{gt: 200, color: '#1e3a8a'}, {gt: 150, lte: 200, color: '#2563eb'}, {gt: 100, lte: 150, color: '#60a5fa'}, {gt: 50, lte: 100, color: '#bfdbfe'}, {gt: 0, lte: 50, color: '#dbeafe'}, {value: 0, color: '#f1f5f9'}]
+                    },
+                    series: [{ type: 'heatmap', data: gridData, label: { show: true, fontSize: 10, color: '#475569' } }]
+                };
+
+                // HR Heatmap Grid
+                hrHeatmapOption = {
+                    tooltip: { position: 'top', formatter: p => `${sortedYears[p.data[1]]}年${monthLabels[p.data[0]]}: ${p.data[2]} bpm` },
+                    grid: { top: 60, bottom: 30, left: 60, right: 30 },
+                    xAxis: { type: 'category', data: monthLabels },
+                    yAxis: { type: 'category', data: sortedYears.map(String) },
+                    visualMap: {
+                        min: 100, max: 180, type: 'piecewise', orient: 'horizontal', left: 'center', top: 0,
+                        pieces: [
+                            {gt: 170, color: '#ef4444', label: '极高 (>170)'}, {gt: 155, lte: 170, color: '#f97316', label: '高 (155-170)'}, {gt: 140, lte: 155, color: '#eab308', label: '中 (140-155)'}, {gt: 120, lte: 140, color: '#22c55e', label: '低 (120-140)'}, {gt: 0, lte: 120, color: '#3b82f6', label: '极低 (<120)'}, {value: 0, color: '#f1f5f9', label: '无数据'}
+                        ]
+                    },
+                    series: [{ type: 'heatmap', data: hrGridData, label: { show: true, fontSize: 10, color: '#475569' } }]
+                };
+            }
+
+            chartInstances.heatmap.setOption(heatmapOption, true);
+            chartInstances.hrHeatmap.setOption(hrHeatmapOption, true);
 
             // Trend (Filtered)
             const trendDom = document.getElementById('trend-chart');
