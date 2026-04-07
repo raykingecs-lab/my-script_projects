@@ -351,6 +351,70 @@
                 </div>
             </section>
 
+            <!-- Silver Medal Wall -->
+            <section class="mb-12">
+                <h3 class="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-7.714 2.143L11 21l-2.286-6.857L1 12l7.714-2.143L11 3z" />
+                    </svg>
+                    银牌记录 (Silver Medal Wall)
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="pb-card bg-gradient-to-br from-slate-50 to-slate-100 p-6 rounded-2xl border border-slate-200">
+                        <p class="text-slate-500 font-bold uppercase text-xs tracking-wider">5 km</p>
+                        <h4 id="silver-5k-time" class="text-2xl font-black text-slate-600 mt-2">--:--</h4>
+                        <p id="silver-5k-date" class="text-slate-500 text-sm mt-1">尚未记录</p>
+                    </div>
+                    <div class="pb-card bg-gradient-to-br from-slate-50 to-slate-100 p-6 rounded-2xl border border-slate-200">
+                        <p class="text-slate-500 font-bold uppercase text-xs tracking-wider">10 km</p>
+                        <h4 id="silver-10k-time" class="text-2xl font-black text-slate-600 mt-2">--:--</h4>
+                        <p id="silver-10k-date" class="text-slate-500 text-sm mt-1">尚未记录</p>
+                    </div>
+                    <div class="pb-card bg-gradient-to-br from-slate-50 to-slate-100 p-6 rounded-2xl border border-slate-200">
+                        <p class="text-slate-500 font-bold uppercase text-xs tracking-wider">半程马拉松</p>
+                        <h4 id="silver-half-time" class="text-2xl font-black text-slate-600 mt-2">--:--</h4>
+                        <p id="silver-half-date" class="text-slate-500 text-sm mt-1">尚未记录</p>
+                    </div>
+                    <div class="pb-card bg-gradient-to-br from-slate-50 to-slate-100 p-6 rounded-2xl border border-slate-200">
+                        <p class="text-slate-500 font-bold uppercase text-xs tracking-wider">全程马拉松</p>
+                        <h4 id="silver-full-time" class="text-2xl font-black text-slate-600 mt-2">--:--</h4>
+                        <p id="silver-full-date" class="text-slate-500 text-sm mt-1">尚未记录</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Bronze Medal Wall -->
+            <section class="mb-12">
+                <h3 class="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-7.714 2.143L11 21l-2.286-6.857L1 12l7.714-2.143L11 3z" />
+                    </svg>
+                    铜牌记录 (Bronze Medal Wall)
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="pb-card bg-gradient-to-br from-amber-50 to-orange-50 p-6 rounded-2xl border border-amber-100">
+                        <p class="text-amber-700 font-bold uppercase text-xs tracking-wider">5 km</p>
+                        <h4 id="bronze-5k-time" class="text-2xl font-black text-slate-800 mt-2">--:--</h4>
+                        <p id="bronze-5k-date" class="text-slate-500 text-sm mt-1">尚未记录</p>
+                    </div>
+                    <div class="pb-card bg-gradient-to-br from-amber-50 to-orange-50 p-6 rounded-2xl border border-amber-100">
+                        <p class="text-amber-700 font-bold uppercase text-xs tracking-wider">10 km</p>
+                        <h4 id="bronze-10k-time" class="text-2xl font-black text-slate-800 mt-2">--:--</h4>
+                        <p id="bronze-10k-date" class="text-slate-500 text-sm mt-1">尚未记录</p>
+                    </div>
+                    <div class="pb-card bg-gradient-to-br from-amber-50 to-orange-50 p-6 rounded-2xl border border-amber-100">
+                        <p class="text-amber-700 font-bold uppercase text-xs tracking-wider">半程马拉松</p>
+                        <h4 id="bronze-half-time" class="text-2xl font-black text-slate-800 mt-2">--:--</h4>
+                        <p id="bronze-half-date" class="text-slate-500 text-sm mt-1">尚未记录</p>
+                    </div>
+                    <div class="pb-card bg-gradient-to-br from-amber-50 to-orange-50 p-6 rounded-2xl border border-amber-100">
+                        <p class="text-amber-700 font-bold uppercase text-xs tracking-wider">全程马拉松</p>
+                        <h4 id="bronze-full-time" class="text-2xl font-black text-slate-800 mt-2">--:--</h4>
+                        <p id="bronze-full-date" class="text-slate-500 text-sm mt-1">尚未记录</p>
+                    </div>
+                </div>
+            </section>
+
             <!-- PW Wall (New) -->
             <section class="mb-12">
                 <h3 class="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
@@ -1024,19 +1088,24 @@
             ];
             
             targets.forEach(d => {
-                const candidates = activities.filter(a => a.distance >= d.t && a.distance < d.max);
-                const timeEl = document.getElementById(`pb-${d.id}-time`);
-                const dateEl = document.getElementById(`pb-${d.id}-date`);
+                const candidates = activities.filter(a => a.distance >= d.t && a.distance < d.max)
+                                             .sort((a, b) => a.paceSec - b.paceSec);
 
-                if (candidates.length > 0) {
-                    const best = candidates.reduce((p, c) => p.paceSec < c.paceSec ? p : c);
-                    // 统一使用 formatDuration 自动处理是否显示小时
-                    timeEl.innerText = formatDuration(best.paceSec * d.t);
-                    dateEl.innerText = best.dateStr;
-                } else {
-                    timeEl.innerText = "--:--";
-                    dateEl.innerText = "未匹配记录";
-                }
+                const updateEl = (prefix, record) => {
+                    const timeEl = document.getElementById(`${prefix}-${d.id}-time`);
+                    const dateEl = document.getElementById(`${prefix}-${d.id}-date`);
+                    if (record) {
+                        timeEl.innerText = formatDuration(record.paceSec * d.t);
+                        dateEl.innerText = record.dateStr;
+                    } else {
+                        timeEl.innerText = "--:--";
+                        dateEl.innerText = "未匹配记录";
+                    }
+                };
+
+                updateEl('pb', candidates[0]);
+                updateEl('silver', candidates[1]);
+                updateEl('bronze', candidates[2]);
             });
         }
 
