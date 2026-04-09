@@ -3,22 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>上海马拉松：对对碰 (Sprint Pro Chinese)</title>
+    <title>上海马拉松：对对碰 (Ceremony Edition)</title>
     <style>
         :root {
             --neon-green: #CCFF00;
             --deep-blue: #0A0E14;
             --white: #FFFFFF;
             --gray: #252930;
+            --gold: #FFD700;
             --danger: #FF3300;
         }
+
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&family=Ma+Shan+Zheng&display=swap');
 
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
 
         body {
             background-color: var(--deep-blue);
             color: var(--white);
-            font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            font-family: 'Inter', 'PingFang SC', sans-serif;
             overflow: hidden;
             display: flex;
             flex-direction: column;
@@ -37,8 +40,8 @@
         }
 
         .stat-group { display: flex; flex-direction: column; }
-        .stat-label { font-size: 10px; color: var(--neon-green); font-weight: 800; letter-spacing: 1.5px; }
-        .stat-value { font-size: 26px; font-weight: 900; font-family: 'Orbitron', sans-serif; }
+        .stat-label { font-size: 10px; color: var(--neon-green); font-weight: 800; letter-spacing: 1px; }
+        .stat-value { font-size: 24px; font-weight: 900; font-family: 'Orbitron', sans-serif; }
 
         #game-container {
             position: relative;
@@ -62,75 +65,89 @@
         }
 
         .tool-item {
-            width: 55px;
-            height: 55px;
+            width: 55px; height: 55px;
             background: rgba(37, 41, 48, 0.9);
             border: 2px solid #444;
             border-radius: 12px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            transition: all 0.2s;
-            position: relative;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            cursor: pointer; transition: all 0.2s; position: relative;
         }
-
         .tool-item:active { transform: scale(0.9) translateY(5px); }
-        .tool-label { font-size: 9px; color: #fff; margin-top: 2px; font-weight: bold; }
         .tool-count { position: absolute; top: -8px; right: -8px; background: var(--danger); color: #fff; font-size: 11px; padding: 2px 7px; border-radius: 10px; font-weight: 900; border: 2px solid var(--deep-blue); }
 
+        /* 电子证书结算页面 */
         #overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(10, 14, 20, 0.98);
-            display: none;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 100;
-            text-align: center;
-            animation: fadeIn 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+            background: rgba(10, 14, 20, 0.9);
+            display: none; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 100; text-align: center;
+            padding: 20px;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: scale(1.1); }
-            to { opacity: 1; transform: scale(1.0); }
+        #certificate {
+            background: linear-gradient(135deg, #1a1e26 0%, #0a0e14 100%);
+            border: 2px solid var(--gold);
+            padding: 40px 30px;
+            border-radius: 4px;
+            position: relative;
+            box-shadow: 0 0 50px rgba(255, 215, 0, 0.2);
+            max-width: 400px;
+            width: 90%;
+            animation: certSlide 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        #overlay h2 { font-size: 42px; color: var(--neon-green); margin-bottom: 10px; font-weight: 900; }
-        .summary { margin-bottom: 40px; color: #aaa; font-size: 16px; line-height: 1.8; }
-        .summary b { color: var(--white); font-family: 'Orbitron', sans-serif; font-size: 20px; }
+        @keyframes certSlide {
+            from { transform: translateY(50px) scale(0.9); opacity: 0; }
+            to { transform: translateY(0) scale(1); opacity: 1; }
+        }
+
+        #cert-medal {
+            font-size: 80px; margin-bottom: 20px;
+            display: inline-block;
+            filter: drop-shadow(0 0 20px var(--gold));
+            animation: medalBounce 1s infinite alternate cubic-bezier(0.455, 0.03, 0.515, 0.955);
+        }
+
+        @keyframes medalBounce {
+            from { transform: scale(1); }
+            to { transform: scale(1.1); }
+        }
+
+        #overlay h2 { 
+            font-family: 'Ma Shan Zheng', cursive; 
+            font-size: 36px; color: var(--gold); margin-bottom: 10px; 
+        }
+
+        .summary { margin-bottom: 30px; color: #ccc; font-size: 14px; border-top: 1px solid #333; padding-top: 20px; }
+        .summary p { margin: 10px 0; }
+        .summary b { color: var(--white); font-family: 'Orbitron', sans-serif; font-size: 22px; margin-left: 10px; }
 
         .btn {
-            padding: 18px 60px;
+            padding: 15px 40px;
             background: var(--neon-green);
             color: var(--deep-blue);
-            font-weight: 900;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 20px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
+            font-weight: 900; border: none; border-radius: 2px;
+            cursor: pointer; font-size: 18px; text-transform: uppercase;
+            letter-spacing: 2px; transition: all 0.2s;
         }
+        .btn:hover { background: var(--white); box-shadow: 0 0 20px var(--neon-green); }
 
-        #progress-wrapper { width: 90%; height: 6px; background: #111; margin-bottom: 10px; position: relative; border-radius: 3px; overflow: hidden; }
+        #progress-wrapper { width: 90%; height: 6px; background: #111; margin-bottom: 10px; position: relative; border-radius: 3px; }
         #progress-bar { position: absolute; height: 100%; background: var(--neon-green); width: 0%; transition: width 0.4s; box-shadow: 0 0 10px var(--neon-green); }
         #stage-name { font-size: 14px; color: var(--neon-green); letter-spacing: 2px; margin-bottom: 20px; font-weight: bold; }
 
     </style>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap" rel="stylesheet">
 </head>
 <body>
 
     <div id="dashboard">
         <div class="stat-group">
-            <div class="stat-label">RACE PROGRESS</div>
-            <div class="stat-value"><span id="score">0.000</span> <small style="font-size:12px">KM</small></div>
+            <div class="stat-label">FINISH KM</div>
+            <div class="stat-value"><span id="score">0.000</span></div>
         </div>
         <div class="stat-group" style="align-items: flex-end;">
-            <div class="stat-label">PACE TIMER</div>
+            <div class="stat-label">CLOCK</div>
             <div class="stat-value" id="timer">08:00</div>
         </div>
     </div>
@@ -139,74 +156,63 @@
         <canvas id="gameCanvas"></canvas>
         
         <div id="toolbox">
-            <div class="tool-item" onclick="game.useGel()" title="清除所有⏱️">
+            <div class="tool-item" onclick="game.useGel()" title="清除⏱️">
                 <div class="tool-count" id="count-gel">10</div>
                 <span style="font-size:20px">💊</span>
-                <span class="tool-label">能量胶</span>
             </div>
-            <div class="tool-item" onclick="game.useGPS()" title="寻找配对">
+            <div class="tool-item" onclick="game.useGPS()" title="提示">
                 <div class="tool-count" id="count-gps">10</div>
                 <span style="font-size:20px">🎯</span>
-                <span class="tool-label">GPS</span>
             </div>
-            <div class="tool-item" onclick="game.useShuffle()" title="重整位置">
+            <div class="tool-item" onclick="game.useShuffle()" title="洗牌">
                 <div class="tool-count" id="count-shuffle">99</div>
                 <span style="font-size:20px">🌪️</span>
-                <span class="tool-label">配速</span>
             </div>
         </div>
 
         <div id="overlay">
-            <h2 id="overlay-title">SHANGHAI MARATHON</h2>
-            <div id="overlay-msg" class="summary">
-                <p id="final-result">PB ACHIEVED!</p>
-                <p>完赛用时：<b id="final-time">00:00</b></p>
-                <p>总里程：<b id="final-dist">42.195 KM</b></p>
+            <div id="certificate">
+                <div id="cert-medal">🏅</div>
+                <h2 id="overlay-title">完赛证书</h2>
+                <div id="overlay-msg" class="summary">
+                    <p>恭喜您完成 2026 上海马拉松挑战！</p>
+                    <p>成绩 (Gun Time)：<b id="final-time">00:00</b></p>
+                    <p>总里程 (Distance)：<b id="final-dist">42.195 KM</b></p>
+                </div>
+                <button class="btn" onclick="game.start()" id="start-btn">再次挑战</button>
             </div>
-            <button class="btn" onclick="game.start()" id="start-btn">ENTER RACE</button>
         </div>
     </div>
 
     <div id="progress-wrapper"><div id="progress-bar"></div></div>
-    <div id="stage-name">当前赛段：外滩</div>
+    <div id="stage-name">当前赛段：外滩段</div>
 
     <script>
         const CONFIG = {
             COLORS: {
-                neon: '#CCFF00',
-                deep: '#0A0E14',
-                white: '#FFFFFF',
-                segments: ['#00F2FF', '#CCFF00', '#FFAA00', '#FF3300']
+                neon: '#CCFF00', deep: '#0A0E14', white: '#FFFFFF', gold: '#FFD700',
+                confetti: ['#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4caf50', '#8bc34a', '#cddc39', '#ffeb3b', '#ffc107', '#ff9800', '#ff5722']
             },
             TYPES: ['shoe', 'medal', 'clock', 'cap', 'energy', 'watch'],
-            EMOJI_MAP: {
-                shoe: '👟',
-                medal: '🏅',
-                clock: '⏱️',
-                cap: '🧢',
-                energy: '⚡',
-                watch: '⌚'
-            },
-            ITEM_SIZE: 56,
-            TARGET_DISTANCE: 42.195,
-            INITIAL_TIME: 480,
-            TOTAL_PAIRS: 40 
+            EMOJI_MAP: { shoe: '👟', medal: '🏅', clock: '⏱️', cap: '🧢', energy: '⚡', watch: '⌚' },
+            ITEM_SIZE: 56, TARGET_DISTANCE: 42.195, INITIAL_TIME: 480, TOTAL_PAIRS: 40 
         };
 
         class Particle {
-            constructor(x, y, color) {
+            constructor(x, y, color, isConfetti = false) {
                 this.x = x; this.y = y;
+                this.isConfetti = isConfetti;
                 const angle = Math.random() * Math.PI * 2;
-                const speed = Math.random() * 8 + 4;
+                const speed = isConfetti ? (Math.random() * 12 + 5) : (Math.random() * 8 + 4);
                 this.vx = Math.cos(angle) * speed;
                 this.vy = Math.sin(angle) * speed;
-                this.gravity = 0.15;
+                this.gravity = isConfetti ? 0.2 : 0.15;
                 this.life = 1.0;
-                this.decay = 0.025;
+                this.decay = isConfetti ? (Math.random() * 0.01 + 0.005) : 0.025;
                 this.color = color;
-                this.size = Math.random() * 5 + 2;
+                this.size = Math.random() * (isConfetti ? 8 : 5) + 2;
                 this.rotation = Math.random() * Math.PI * 2;
-                this.vr = (Math.random() - 0.5) * 0.3;
+                this.vr = (Math.random() - 0.5) * (isConfetti ? 0.5 : 0.3);
             }
             update() {
                 this.vx *= 0.98; this.vy *= 0.98; this.vy += this.gravity;
@@ -216,48 +222,37 @@
             draw(ctx) {
                 ctx.save(); ctx.globalAlpha = this.life;
                 ctx.translate(this.x, this.y); ctx.rotate(this.rotation);
-                ctx.fillStyle = this.color; ctx.fillRect(-this.size/2, -this.size/2, this.size, this.size);
+                ctx.fillStyle = this.color;
+                if (this.isConfetti) {
+                    ctx.fillRect(-this.size/2, -this.size/2, this.size, this.size/2);
+                } else {
+                    ctx.fillRect(-this.size/2, -this.size/2, this.size, this.size);
+                }
                 ctx.restore();
             }
         }
 
         class Sprite {
             constructor(type, x, y, z) {
-                this.type = type;
-                this.x = x; this.y = y; this.z = z;
-                this.size = CONFIG.ITEM_SIZE;
-                this.isMatched = false; this.isClickable = false;
-                this.scale = 1; this.glow = 0;
+                this.type = type; this.x = x; this.y = y; this.z = z;
+                this.size = CONFIG.ITEM_SIZE; this.isMatched = false;
+                this.isClickable = false; this.scale = 1; this.glow = 0;
             }
-
             draw(ctx) {
                 ctx.save();
                 const depth = this.z * 1.5;
                 ctx.translate(this.x + this.size/2 + depth, this.y + this.size/2 - depth);
                 ctx.scale(this.scale, this.scale);
                 ctx.translate(-this.size/2, -this.size/2);
-
-                if (this.glow > 0) {
-                    ctx.shadowColor = CONFIG.COLORS.neon; ctx.shadowBlur = 25;
-                    this.glow -= 0.02;
-                } else if (this.isClickable) {
-                    ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 12;
-                }
-
+                if (this.glow > 0) { ctx.shadowColor = CONFIG.COLORS.neon; ctx.shadowBlur = 25; this.glow -= 0.02; }
+                else if (this.isClickable) { ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 12; }
                 ctx.fillStyle = this.isClickable ? '#252930' : '#121417';
                 ctx.strokeStyle = this.isClickable ? (this.glow > 0.1 ? '#FFF' : CONFIG.COLORS.neon) : '#333';
-                ctx.lineWidth = this.isClickable ? 2.5 : 1;
-                ctx.globalAlpha = this.isClickable ? 1 : 0.4;
-
-                ctx.beginPath(); ctx.roundRect(0, 0, this.size, this.size, 8);
-                ctx.fill(); ctx.stroke();
-
+                ctx.lineWidth = 2.5; ctx.globalAlpha = this.isClickable ? 1 : 0.4;
+                ctx.beginPath(); ctx.roundRect(0, 0, this.size, this.size, 8); ctx.fill(); ctx.stroke();
                 ctx.globalAlpha = this.isClickable ? 1 : 0.3;
-                ctx.font = `${Math.floor(this.size * 0.6)}px Arial`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
+                ctx.font = `${Math.floor(this.size * 0.6)}px Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                 ctx.fillText(CONFIG.EMOJI_MAP[this.type], this.size/2, this.size/2 + 2);
-
                 ctx.restore();
             }
         }
@@ -268,36 +263,32 @@
                 this.ctx = this.canvas.getContext('2d');
                 this.sprites = []; this.particles = [];
                 this.distance = 0; this.timeLeft = CONFIG.INITIAL_TIME;
-                this.stage = 0; this.isRunning = false;
+                this.stage = 0; this.isRunning = false; this.isCelebrating = false;
                 this.inventory = { gel: 10, gps: 10, shuffle: 99 };
                 this.selected = null; this.distPerPair = CONFIG.TARGET_DISTANCE / CONFIG.TOTAL_PAIRS;
-
                 this.initCanvas();
                 window.addEventListener('resize', () => this.initCanvas());
                 this.canvas.addEventListener('pointerdown', (e) => this.handleInput(e));
-                this.showOverlay("SHANGHAI MARATHON", "READY TO RUN?");
+                this.showOverlay("READY?", "点击下方按钮开始全马挑战");
             }
-
             initCanvas() {
                 const container = document.getElementById('game-container');
                 this.canvas.width = Math.min(container.clientWidth, 500);
                 this.canvas.height = Math.min(container.clientHeight, 700);
             }
-
             start() {
                 this.distance = 0; this.stage = 0; this.timeLeft = CONFIG.INITIAL_TIME;
                 this.inventory = { gel: 10, gps: 10, shuffle: 99 };
-                this.selected = null; this.nextStage(); this.isRunning = true;
+                this.selected = null; this.isCelebrating = false;
+                this.particles = []; this.nextStage(); this.isRunning = true;
                 this.lastTime = performance.now(); this.animate();
                 document.getElementById('overlay').style.display = 'none'; this.updateUI();
             }
-
             nextStage() {
-                const stages = ["外滩", "南浦大桥", "西岸", "体育场"];
+                const stages = ["外滩段", "南浦大桥段", "西岸段", "上海体育场段"];
                 document.getElementById('stage-name').innerText = `当前赛段：${stages[this.stage]}`;
                 this.generateLevel(this.stage); this.stage++;
             }
-
             generateLevel(stageNum) {
                 this.sprites = [];
                 const pairs = 7 + stageNum * 2;
@@ -309,14 +300,10 @@
                 pool.sort(() => Math.random() - 0.5);
                 const cx = this.canvas.width/2, cy = this.canvas.height/2;
                 pool.forEach((type, i) => {
-                    const rx = cx + (Math.random()-0.5)*350 - 28;
-                    const ry = cy + (Math.random()-0.5)*450 - 28;
-                    const z = Math.floor(i/4) + Math.random()*0.1;
-                    this.sprites.push(new Sprite(type, rx, ry, z));
+                    this.sprites.push(new Sprite(type, cx+(Math.random()-0.5)*350-28, cy+(Math.random()-0.5)*450-28, Math.floor(i/4)+Math.random()*0.1));
                 });
                 this.updateClickable();
             }
-
             updateClickable() {
                 this.sprites.forEach((a, i) => {
                     if (a.isMatched) return;
@@ -332,86 +319,73 @@
                     a.isClickable = !blocked;
                 });
             }
-
             handleInput(e) {
                 if (!this.isRunning) return;
                 const rect = this.canvas.getBoundingClientRect();
                 const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+                let target = null;
                 for (let i = this.sprites.length - 1; i >= 0; i--) {
                     const s = this.sprites[i];
                     if (s.isMatched) continue;
-                    const canSelect = s.isClickable || (this.selected && s.type === this.selected.type);
-                    if (canSelect && mx > s.x && mx < s.x + s.size && my > s.y && my < s.y + s.size) {
-                        this.onSpriteClick(s); return;
+                    if (s.isClickable || (this.selected && s.type === this.selected.type)) {
+                        if (mx > s.x && mx < s.x + s.size && my > s.y && my < s.y + s.size) {
+                            if (this.selected && s.type === this.selected.type && s !== this.selected) { target = s; break; }
+                            if (!target) target = s;
+                        }
                     }
                 }
+                if (target) this.onSpriteClick(target);
             }
-
             onSpriteClick(s) {
-                if (!this.selected) {
-                    this.selected = s; s.scale = 1.25;
-                } else if (this.selected === s) {
-                    s.scale = 1; this.selected = null;
-                } else {
-                    if (this.selected.type === s.type) {
-                        this.match(this.selected, s); this.selected = null;
-                    } else if (s.isClickable) {
-                        this.selected.scale = 1; this.selected = s; s.scale = 1.25;
-                    }
+                if (!this.selected) { this.selected = s; s.scale = 1.25; }
+                else if (this.selected === s) { s.scale = 1; this.selected = null; }
+                else {
+                    if (this.selected.type === s.type) { this.match(this.selected, s); this.selected = null; }
+                    else if (s.isClickable) { this.selected.scale = 1; this.selected = s; s.scale = 1.25; }
                 }
             }
-
             match(s1, s2) {
-                const color = CONFIG.COLORS.segments[this.stage-1] || '#FFF';
-                for(let i=0; i<40; i++) {
-                    this.particles.push(new Particle(s1.x+28, s1.y+28, color));
-                    this.particles.push(new Particle(s2.x+28, s2.y+28, color));
+                for(let i=0; i<30; i++) {
+                    this.particles.push(new Particle(s1.x+28, s1.y+28, CONFIG.COLORS.neon));
+                    this.particles.push(new Particle(s2.x+28, s2.y+28, CONFIG.COLORS.white));
                 }
                 s1.isMatched = s2.isMatched = true;
-                this.distance += this.distPerPair;
-                this.updateClickable();
+                this.distance += this.distPerPair; this.updateClickable(); this.checkFinish();
+            }
+            checkFinish() {
                 if (this.sprites.every(s => s.isMatched)) {
                     if (this.stage < 4) setTimeout(() => this.nextStage(), 500);
                     else { this.distance = 42.195; this.finishRace(); }
                 }
             }
-
             finishRace() {
                 this.isRunning = false;
+                this.isCelebrating = true;
+                // 触发终点大礼炮
+                for(let i=0; i<150; i++) {
+                    this.particles.push(new Particle(this.canvas.width/2, this.canvas.height + 20, CONFIG.COLORS.confetti[Math.floor(Math.random()*CONFIG.COLORS.confetti.length)], true));
+                }
                 const ut = CONFIG.INITIAL_TIME - this.timeLeft;
                 document.getElementById('final-time').innerText = `${Math.floor(ut/60)}:${Math.floor(ut%60).toString().padStart(2,'0')}`;
-                this.showOverlay("完赛挑战成功！", "上海马拉松 42.195KM 达成");
+                document.getElementById('start-btn').innerText = "挑战更高成绩";
+                setTimeout(() => { document.getElementById('overlay').style.display = 'flex'; }, 1000);
             }
-
             useGel() {
                 if (this.inventory.gel <= 0) return;
                 const targets = this.sprites.filter(s => s.type === 'clock' && !s.isMatched);
                 if (targets.length === 0) return;
-                targets.forEach(t => {
-                    t.isMatched = true;
-                    for(let i=0; i<20; i++) this.particles.push(new Particle(t.x+28, t.y+28, '#FFD700'));
-                });
-                this.distance += (targets.length/2)*this.distPerPair;
-                this.inventory.gel--; this.updateUI(); this.updateClickable();
-                if (this.sprites.every(s => s.isMatched)) {
-                    if (this.stage < 4) setTimeout(() => this.nextStage(), 500);
-                    else { this.distance = 42.195; this.finishRace(); }
-                }
+                targets.forEach(t => { t.isMatched = true; for(let i=0; i<15; i++) this.particles.push(new Particle(t.x+28, t.y+28, '#FFD700')); });
+                this.distance += (targets.length/2)*this.distPerPair; this.inventory.gel--; this.updateUI(); this.updateClickable(); this.checkFinish();
             }
-
             useGPS() {
                 if (this.inventory.gps <= 0) return;
                 const clickable = this.sprites.filter(s => s.isClickable && !s.isMatched);
                 for(let i=0; i<clickable.length; i++) {
                     for(let j=i+1; j<clickable.length; j++) {
-                        if (clickable[i].type === clickable[j].type) {
-                            clickable[i].glow = 2; clickable[j].glow = 2;
-                            this.inventory.gps--; this.updateUI(); return;
-                        }
+                        if (clickable[i].type === clickable[j].type) { clickable[i].glow = 2; clickable[j].glow = 2; this.inventory.gps--; this.updateUI(); return; }
                     }
                 }
             }
-
             useShuffle() {
                 if (this.inventory.shuffle <= 0) return;
                 const left = this.sprites.filter(s => !s.isMatched);
@@ -419,41 +393,36 @@
                 left.forEach((s, i) => s.type = types[i]);
                 this.inventory.shuffle--; this.updateClickable(); this.updateUI();
             }
-
             updateUI() {
                 document.getElementById('count-gel').innerText = this.inventory.gel;
                 document.getElementById('count-gps').innerText = this.inventory.gps;
                 document.getElementById('count-shuffle').innerText = this.inventory.shuffle;
             }
-
             update(dt) {
-                if (!this.isRunning) return;
-                this.timeLeft -= dt/1000;
-                if (this.timeLeft <= 0) { this.isRunning = false; this.showOverlay("DNF", "未能在关门时间内完赛"); }
-                document.getElementById('score').innerText = Math.min(this.distance, 42.195).toFixed(3);
+                if (!this.isRunning && !this.isCelebrating) return;
+                if (this.isRunning) this.timeLeft -= dt/1000;
+                if (this.timeLeft <= 0) { this.isRunning = false; this.showOverlay("DNF", "很遗憾未能在关门时间内完赛"); }
+                const d = Math.min(this.distance, 42.195);
+                document.getElementById('score').innerText = d.toFixed(3);
                 const m = Math.floor(this.timeLeft/60), s = Math.floor(this.timeLeft%60);
                 document.getElementById('timer').innerText = `${m}:${s.toString().padStart(2,'0')}`;
-                document.getElementById('progress-bar').style.width = `${(Math.min(this.distance, 42.195)/42.195)*100}%`;
-                this.particles.forEach((p, i) => { p.update(); if (p.life<=0) this.particles.splice(i,1); });
+                document.getElementById('progress-bar').style.width = `${(d/42.195)*100}%`;
+                for(let i=this.particles.length-1; i>=0; i--) { this.particles[i].update(); if (this.particles[i].life<=0) this.particles.splice(i,1); }
+                if (this.isCelebrating && this.particles.length < 50) { // 持续撒花
+                    this.particles.push(new Particle(Math.random()*this.canvas.width, this.canvas.height+10, CONFIG.COLORS.confetti[Math.floor(Math.random()*CONFIG.COLORS.confetti.length)], true));
+                }
             }
-
             render() {
-                this.ctx.fillStyle = CONFIG.COLORS.deep;
-                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-                this.ctx.strokeStyle = '#151921'; this.ctx.lineWidth = 15;
-                this.ctx.beginPath(); this.ctx.moveTo(0, this.canvas.height); this.ctx.lineTo(this.canvas.width, 0); this.ctx.stroke();
+                this.ctx.fillStyle = CONFIG.COLORS.deep; this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
                 const sorted = [...this.sprites].sort((a,b) => a.z - b.z);
                 sorted.forEach(s => { if (!s.isMatched) s.draw(this.ctx); });
                 this.particles.forEach(p => p.draw(this.ctx));
             }
-
             animate() {
-                if (!this.isRunning) return;
                 const now = performance.now(); this.update(now - this.lastTime);
                 this.render(); this.lastTime = now;
-                requestAnimationFrame(() => this.animate());
+                if (this.isRunning || this.isCelebrating) requestAnimationFrame(() => this.animate());
             }
-
             showOverlay(title, msg) {
                 const overlay = document.getElementById('overlay');
                 document.getElementById('overlay-title').innerText = title;

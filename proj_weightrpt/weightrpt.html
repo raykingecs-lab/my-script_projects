@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人体重数据看板 - WeightRpt</title>
+    <style>
+        :root {
+            --primary-color: #0066cc;
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-main: #333333;
+            --text-secondary: #666666;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            --border-radius: 12px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; }
+        header { margin-bottom: 30px; text-align: center; }
+        header h1 { font-weight: 700; color: var(--primary-color); margin-bottom: 10px; }
+
+        #loadingOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.9);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 1000; transition: opacity 0.5s;
+        }
+        .spinner {
+            width: 40px; height: 40px; border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%; animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .controls {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px; background: var(--card-bg); padding: 20px;
+            border-radius: var(--border-radius); box-shadow: var(--shadow); margin-bottom: 30px;
+        }
+
+        .control-item { display: flex; flex-direction: column; gap: 8px; }
+        .control-item label { font-size: 0.9rem; font-weight: 600; color: var(--text-secondary); }
+
+        input[type="number"], input[type="date"], input[type="file"] {
+            padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px;
+            outline: none; transition: border-color 0.3s;
+        }
+        input:focus { border-color: var(--primary-color); }
+
+        .weight-wall {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px; margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: var(--card-bg); padding: 25px; border-radius: var(--border-radius);
+            box-shadow: var(--shadow); text-align: center; transition: transform 0.2s;
+            position: relative;
+        }
+        .stat-card:hover { transform: translateY(-5px); }
+        .stat-label { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 10px; }
+        .stat-value { font-size: 2rem; font-weight: 800; color: var(--primary-color); }
+        .stat-unit { font-size: 1rem; margin-left: 4px; }
+        .stat-sub { font-size: 0.8rem; color: #999; margin-top: 8px; }
+        .bmi-tag { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 0.8rem; margin-top: 5px; font-weight: bold; }
+
+        .bmi-ranges {
+            margin-top: 15px; border-top: 1px dashed #eee; padding-top: 10px;
+            text-align: left; font-size: 0.75rem; color: var(--text-secondary);
+            display: grid; grid-template-columns: 1fr 1fr; gap: 5px;
+        }
+        .bmi-range-item span { font-weight: 600; color: var(--text-main); }
+
+        .charts-container { display: grid; grid-template-columns: 1fr; gap: 30px; margin-bottom: 30px; }
+        .chart-card { background: var(--card-bg); padding: 20px; border-radius: var(--border-radius); box-shadow: var(--shadow); }
+        .chart-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 15px; padding-left: 10px; border-left: 4px solid var(--primary-color); }
+        .chart-body { height: 400px; width: 100%; min-height: 300px; }
+
+        /* 表格样式 */
+        .table-card { background: var(--card-bg); padding: 20px; border-radius: var(--border-radius); box-shadow: var(--shadow); overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; min-width: 600px; }
+        th { background-color: #f9fafb; color: var(--text-secondary); font-weight: 600; text-align: left; padding: 12px 15px; border-bottom: 2px solid #eee; font-size: 0.9rem; }
+        td { padding: 12px 15px; border-bottom: 1px solid #f0f0f0; color: var(--text-main); font-size: 0.95rem; }
+        tr:hover { background-color: #fcfdfe; }
+        .text-max { color: #f44336; font-weight: bold; cursor: help; border-bottom: 1px dotted #ffccc7; }
+        .text-min { color: #4caf50; font-weight: bold; cursor: help; border-bottom: 1px dotted #b7eb8f; }
+        .text-diff { color: #ff9800; font-style: italic; }
+
+        @media (min-width: 992px) {
+            .charts-container { grid-template-columns: 1fr 1fr; }
+            .chart-card.full-width { grid-column: span 2; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="loadingOverlay">
+    <div class="spinner"></div>
+    <p style="margin-top: 15px; color: #666;">正在加载图表库，请稍候...</p>
+    <p id="errorHint" style="display:none; color: #ff4d4f; margin-top: 10px; font-size: 0.9rem;">加载过慢？请检查网络或尝试刷新。</p>
+</div>
+
+<div class="container">
+    <header>
+        <h1>体重数据看板</h1>
+        <p>导入 CSV 文件，洞察您的健康趋势</p>
+    </header>
+
+    <section class="controls">
+        <div class="control-item">
+            <label>1. 上传数据 (CSV)</label>
+            <input type="file" id="csvInput" accept=".csv">
+            <small style="color: #999;">格式: YYYY-MM-DD,体重 或Garmin Connect体重导出CSV</small>
+        </div>
+        <div class="control-item">
+            <label>2. 您的身高 (cm)</label>
+            <input type="number" id="heightInput" placeholder="请输入身高" value="174">
+        </div>
+        <div class="control-item">
+            <label>3. 日期筛选 (起始)</label>
+            <input type="date" id="startDate">
+        </div>
+        <div class="control-item">
+            <label>4. 日期筛选 (终止)</label>
+            <input type="date" id="endDate">
+        </div>
+    </section>
+
+    <section class="weight-wall" id="weightWall">
+        <div class="stat-card">
+            <div class="stat-label">最高体重</div>
+            <div class="stat-value" id="maxWeight">--<span class="stat-unit">kg</span></div>
+            <div class="stat-sub" id="maxWeightDate">--</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">最低体重</div>
+            <div class="stat-value" id="minWeight">--<span class="stat-unit">kg</span></div>
+            <div class="stat-sub" id="minWeightDate">--</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">最新 BMI</div>
+            <div class="stat-value" id="latestBMI">--</div>
+            <div id="bmiStatus" class="bmi-tag">等待数据</div>
+            <div class="bmi-ranges" id="bmiRangesDisplay">
+                <div class="bmi-range-item">正常: <span id="rangeNormal">--</span></div>
+                <div class="bmi-range-item">超重: <span id="rangeOverweight">--</span></div>
+                <div class="bmi-range-item">肥胖: <span id="rangeObese">--</span></div>
+                <div class="bmi-range-item">偏瘦: <span id="rangeLean">--</span></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="charts-container">
+        <div class="chart-card full-width">
+            <div class="chart-title">每日体重趋势</div>
+            <div id="dailyChart" class="chart-body"></div>
+        </div>
+        <div class="chart-card full-width">
+            <div class="chart-title">年度最高体重趋势</div>
+            <div id="annualChart" class="chart-body"></div>
+        </div>
+    </section>
+
+    <!-- 年度极端体重表 -->
+    <section class="table-card">
+        <div class="chart-title">年度极端体重统计表</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>年份</th>
+                    <th>最高体重 (kg)</th>
+                    <th>最低体重 (kg)</th>
+                    <th>年均体重 (kg)</th>
+                    <th>年内波动 (kg)</th>
+                </tr>
+            </thead>
+            <tbody id="annualTableBody">
+                <tr>
+                    <td colspan="5" style="text-align:center; color:#999; padding: 40px;">暂无数据，请上传 CSV 文件</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+</div>
+
+<script src="https://unpkg.com/echarts@5.4.3/dist/echarts.min.js" onerror="handleEchartsError()"></script>
+<script>
+    function handleEchartsError() {
+        document.getElementById('errorHint').style.display = 'block';
+        document.getElementById('errorHint').innerText = '错误：图表库加载失败。请检查网络链接（unpkg.com）并刷新页面。';
+    }
+
+    let rawData = [];
+    let dailyChart = null;
+    let annualChart = null;
+
+    function initCharts() {
+        if (typeof echarts === 'undefined') return;
+        document.getElementById('loadingOverlay').style.opacity = '0';
+        setTimeout(() => { document.getElementById('loadingOverlay').style.display = 'none'; }, 500);
+        dailyChart = echarts.init(document.getElementById('dailyChart'));
+        annualChart = echarts.init(document.getElementById('annualChart'));
+        window.addEventListener('resize', () => {
+            if (dailyChart) dailyChart.resize();
+            if (annualChart) annualChart.resize();
+        });
+    }
+
+    setTimeout(() => {
+        if (typeof echarts === 'undefined') document.getElementById('errorHint').style.display = 'block';
+    }, 5000);
+
+    document.getElementById('csvInput').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = e => processCSV(e.target.result);
+        reader.readAsText(file);
+    });
+
+    function processCSV(csvText) {
+        const lines = csvText.split('\n');
+        const dataMap = new Map();
+        let currentDate = null;
+
+        // 策略 1: 尝试 Garmin 格式解析
+        lines.forEach(line => {
+            const trimmedLine = line.trim();
+            if (!trimmedLine) return;
+
+            // 匹配 Garmin 日期行: " 3月 31日, 2026"
+            const dateMatch = trimmedLine.match(/(\d+)\s*月\s*(\d+)\s*日,\s*(\d+)/);
+            if (dateMatch) {
+                const month = dateMatch[1].padStart(2, '0');
+                const day = dateMatch[2].padStart(2, '0');
+                const year = dateMatch[3];
+                currentDate = `${year}-${month}-${day}`;
+                return;
+            }
+
+            // 匹配 Garmin 数据行: 6:12 AM,79.1 kg...
+            if (currentDate && (trimmedLine.includes('AM') || trimmedLine.includes('PM'))) {
+                const parts = trimmedLine.split(',');
+                if (parts.length >= 2) {
+                    const weightStr = parts[1].replace('kg', '').trim();
+                    const weight = parseFloat(weightStr);
+                    if (!isNaN(weight)) {
+                        dataMap.set(currentDate, weight);
+                    }
+                }
+            }
+        });
+
+        // 策略 2: 如果 Garmin 格式未解析出数据，尝试标准 YYYY-MM-DD 格式解析
+        if (dataMap.size === 0) {
+            lines.forEach(line => {
+                const parts = line.trim().split(',');
+                if (parts.length >= 2) {
+                    const date = parts[0].trim();
+                    const weight = parseFloat(parts[1].trim());
+                    // 简单校验日期格式 YYYY-MM-DD
+                    if (date && /^\d{4}-\d{2}-\d{2}$/.test(date) && !isNaN(weight)) {
+                        dataMap.set(date, weight);
+                    }
+                }
+            });
+        }
+
+        rawData = Array.from(dataMap.entries())
+            .map(([date, weight]) => ({ date, weight }))
+            .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        if (rawData.length > 0) {
+            updateDashboard();
+        } else {
+            alert('未能识别出有效的体重数据格式。支持的格式包括：\n1. Garmin 格式 (日期独立行 + 数据行)\n2. 标准格式 (YYYY-MM-DD,重量)');
+        }
+    }
+
+    document.getElementById('startDate').addEventListener('change', updateDashboard);
+    document.getElementById('endDate').addEventListener('change', updateDashboard);
+    document.getElementById('heightInput').addEventListener('input', updateDashboard);
+
+    function updateDashboard() {
+        if (!dailyChart) return;
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        const heightCm = parseFloat(document.getElementById('heightInput').value);
+
+        if (heightCm > 0) {
+            const h2 = (heightCm / 100) ** 2;
+            document.getElementById('rangeNormal').innerText = `< ${(23.9 * h2).toFixed(1)}kg`;
+            document.getElementById('rangeOverweight').innerText = `${(24 * h2).toFixed(1)}-${(27.9 * h2).toFixed(1)}kg`;
+            document.getElementById('rangeObese').innerText = `> ${(28 * h2).toFixed(1)}kg`;
+            document.getElementById('rangeLean').innerText = `< ${(18.5 * h2).toFixed(1)}kg`;
+        }
+
+        let filteredData = rawData;
+        if (startDate) filteredData = filteredData.filter(d => d.date >= startDate);
+        if (endDate) filteredData = filteredData.filter(d => d.date <= endDate);
+        if (filteredData.length === 0) return;
+
+        const weights = filteredData.map(d => d.weight);
+        const maxW = Math.max(...weights);
+        const minW = Math.min(...weights);
+        const maxItem = filteredData.find(d => d.weight === maxW);
+        const minItem = filteredData.find(d => d.weight === minW);
+        const latestItem = filteredData[filteredData.length - 1];
+
+        document.getElementById('maxWeight').innerHTML = `${maxW.toFixed(1)}<span class="stat-unit">kg</span>`;
+        document.getElementById('maxWeightDate').innerText = maxItem.date;
+        document.getElementById('minWeight').innerHTML = `${minW.toFixed(1)}<span class="stat-unit">kg</span>`;
+        document.getElementById('minWeightDate').innerText = minItem.date;
+
+        if (heightCm > 0) {
+            const bmi = latestItem.weight / ((heightCm / 100) ** 2);
+            document.getElementById('latestBMI').innerText = bmi.toFixed(1);
+            updateBMITag(bmi);
+        }
+
+        renderDailyChart(filteredData);
+        renderAnnualAnalysis(rawData); 
+    }
+
+    function updateBMITag(bmi) {
+        const tag = document.getElementById('bmiStatus');
+        if (bmi < 18.5) { tag.innerText = '偏瘦'; tag.style.backgroundColor = '#ffeb3b'; tag.style.color = '#333'; }
+        else if (bmi <= 23.9) { tag.innerText = '正常'; tag.style.backgroundColor = '#4caf50'; tag.style.color = '#fff'; }
+        else if (bmi <= 27.9) { tag.innerText = '超重'; tag.style.backgroundColor = '#ff9800'; tag.style.color = '#fff'; }
+        else { tag.innerText = '肥胖'; tag.style.backgroundColor = '#f44336'; tag.style.color = '#fff'; }
+    }
+
+    function renderDailyChart(data) {
+        dailyChart.setOption({
+            tooltip: { trigger: 'axis' },
+            grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
+            dataZoom: [{ type: 'inside', start: 0, end: 100 }, { type: 'slider' }],
+            xAxis: { type: 'category', data: data.map(d => d.date) },
+            yAxis: { type: 'value', scale: true, name: 'kg' },
+            series: [{
+                name: '每日体重', data: data.map(d => d.weight), type: 'line', smooth: true,
+                symbolSize: 6, itemStyle: { color: '#0066cc' },
+                areaStyle: { color: 'rgba(0,102,204,0.1)' }
+            }]
+        });
+    }
+
+    function renderAnnualAnalysis(data) {
+        const annualMap = {};
+        data.forEach(d => {
+            const year = d.date.substring(0, 4);
+            if (!annualMap[year]) {
+                annualMap[year] = { sum: 0, count: 0, max: d.weight, maxDate: d.date, min: d.weight, minDate: d.date };
+            }
+            annualMap[year].sum += d.weight;
+            annualMap[year].count += 1;
+            if (d.weight > annualMap[year].max) {
+                annualMap[year].max = d.weight;
+                annualMap[year].maxDate = d.date;
+            }
+            if (d.weight < annualMap[year].min) {
+                annualMap[year].min = d.weight;
+                annualMap[year].minDate = d.date;
+            }
+        });
+        
+        const years = Object.keys(annualMap).sort();
+        const maxWeights = years.map(y => annualMap[y].max.toFixed(1));
+        
+        // 1. 渲染图表 - 修改为年度最高体重趋势
+        annualChart.setOption({
+            tooltip: { trigger: 'axis', formatter: '{b}年 最高: {c} kg' },
+            grid: { left: '3%', right: '4%', bottom: '10%', containLabel: true },
+            xAxis: { type: 'category', data: years },
+            yAxis: { type: 'value', scale: true, name: 'kg' },
+            series: [{
+                name: '年度最高体重', data: maxWeights, type: 'line', smooth: true,
+                symbol: 'circle', symbolSize: 10,
+                itemStyle: { color: '#f44336' },
+                lineStyle: { width: 3, color: '#f44336' },
+                areaStyle: {
+                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                        { offset: 0, color: 'rgba(244, 67, 54, 0.4)' },
+                        { offset: 1, color: 'rgba(244, 67, 54, 0)' }
+                    ])
+                },
+                label: { show: true, position: 'top', color: '#f44336', fontWeight: 'bold' }
+            }]
+        });
+
+        // 2. 渲染表格 - 调整列顺序并增加悬停日期提示
+        const tbody = document.getElementById('annualTableBody');
+        tbody.innerHTML = '';
+        years.reverse().forEach(y => {
+            const item = annualMap[y];
+            const avg = (item.sum / item.count).toFixed(2);
+            const diff = (item.max - item.min).toFixed(1);
+            
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${y}年</strong></td>
+                <td class="text-max" title="达成日期: ${item.maxDate}">${item.max.toFixed(1)}</td>
+                <td class="text-min" title="达成日期: ${item.minDate}">${item.min.toFixed(1)}</td>
+                <td>${avg}</td>
+                <td class="text-diff">± ${diff}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        if (typeof echarts !== 'undefined') initCharts();
+        else window.onload = initCharts;
+        updateDashboard();
+    });
+</script>
+
+</body>
+</html>
