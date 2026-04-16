@@ -1,0 +1,12 @@
+[
+  {"store_id": "P001", "name": "CBD中心店", "kitchen_space": 25, "power_reserve": 65, "comp_distance": 150, "monthly_revenue": 185, "takeout_percent": 35},
+  {"store_id": "P002", "name": "新城社区店", "kitchen_space": 18, "power_reserve": 45, "comp_distance": 1800, "monthly_revenue": 45, "takeout_percent": 50},
+  {"store_id": "P003", "name": "地铁站微型店", "kitchen_space": 6, "power_reserve": 30, "comp_distance": 400, "monthly_revenue": 95, "takeout_percent": 85},
+  {"store_id": "P004", "name": "老城区沿街店", "kitchen_space": 15, "power_reserve": 12, "comp_distance": 900, "monthly_revenue": 65, "takeout_percent": 70},
+  {"store_id": "P005", "name": "大学城生活区店", "kitchen_space": 12, "power_reserve": 28, "comp_distance": 1200, "monthly_revenue": 55, "takeout_percent": 60},
+  {"store_id": "P006", "name": "科技园外送店", "kitchen_space": 14, "power_reserve": 40, "comp_distance": 2100, "monthly_revenue": 82, "takeout_percent": 92},
+  {"store_id": "P007", "name": "商场中岛店", "kitchen_space": 8, "power_reserve": 18, "comp_distance": 50, "monthly_revenue": 120, "takeout_percent": 25},
+  {"store_id": "P008", "name": "近郊加油站店", "kitchen_space": 30, "power_reserve": 80, "comp_distance": 3500, "monthly_revenue": 38, "takeout_percent": 15},
+  {"store_id": "P009", "name": "软件园二期店", "kitchen_space": 16, "power_reserve": 35, "comp_distance": 600, "monthly_revenue": 78, "takeout_percent": 88},
+  {"store_id": "P010", "name": "高铁站进站店", "kitchen_space": 22, "power_reserve": 50, "comp_distance": 300, "monthly_revenue": 210, "takeout_percent": 10}
+]

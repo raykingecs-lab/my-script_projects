@@ -6,7 +6,7 @@ import { useSettingsLogic } from '../hooks/useSettingsLogic';
 import { Ionicons } from '@expo/vector-icons';
 
 export const SettingsScreen = () => {
-  const { exportCSV, backupDatabase } = useSettingsLogic();
+  const { exportCSV, backupDatabase, restoreDatabase } = useSettingsLogic();
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -31,7 +31,17 @@ export const SettingsScreen = () => {
           <View style={styles.buttonTextContainer}>
             <ScaledText bold>全量备份数据库</ScaledText>
             <ScaledText type="caption" color={Theme.colors.textSecondary}>
-              导出原始 .db 文件，用于更换手机
+              导出原始 .db 文件，用于备份数据
+            </ScaledText>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={[styles.bigButton, { marginTop: 20 }]} onPress={restoreDatabase}>
+          <Ionicons name="cloud-download-outline" size={32} color={Theme.colors.primary} />
+          <View style={styles.buttonTextContainer}>
+            <ScaledText bold>恢复数据库备份</ScaledText>
+            <ScaledText type="caption" color={Theme.colors.textSecondary}>
+              选择已有的 .db 文件恢复历史数据
             </ScaledText>
           </View>
         </TouchableOpacity>
