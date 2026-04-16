@@ -49,12 +49,12 @@ export const SettingsScreen = () => {
 
       {/* 关于信息 */}
       <View style={styles.aboutCard}>
-        <ScaledText bold type="body">关于脉安 (PulseGuard)</ScaledText>
+        <ScaledText bold type="body">脉安 (PulseGuard)</ScaledText>
         <ScaledText type="caption" color={Theme.colors.textSecondary} style={{marginTop: 10}}>
-          版本：V1.0.0
+          版本：V1.1.2
         </ScaledText>
         <ScaledText type="caption" color={Theme.colors.textSecondary}>
-          本应用所有数据均存储在您的手机本地，绝不上传云端，保护隐私。
+          本应用为Ray个人作品，所有数据均存储在您的手机本地，绝不上传云端，保护隐私。
         </ScaledText>
       </View>
 
