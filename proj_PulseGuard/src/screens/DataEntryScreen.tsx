@@ -5,14 +5,15 @@ import {
   StyleSheet, 
   TouchableOpacity, 
   Alert,
-  TextInput
+  TextInput,
+  Platform
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { Theme } from '../constants/Theme';
 import { ScaledText } from '../components/common/ScaledText';
 import { Stepper } from '../components/common/Stepper';
 import { useBPRecords } from '../hooks/useBPRecords';
 
-// 快捷标签定义
 const QUICK_NOTES = ['服药后', '刚运动', '感冒中', '情绪波动'];
 
 interface LocalRecord {
@@ -20,7 +21,7 @@ interface LocalRecord {
   systolic: number;
   diastolic: number;
   pulse: number;
-  arm: 'L' | 'R'; // 关键：记录当时的手臂
+  arm: 'L' | 'R';
 }
 
 export const DataEntryScreen = () => {
@@ -32,8 +33,57 @@ export const DataEntryScreen = () => {
   const [arm, setArm] = useState<'L' | 'R'>('L');
   const [selectedNotes, setSelectedNotes] = useState<string[]>([]);
   const [customNote, setCustomNote] = useState(''); 
-  
   const [measurements, setMeasurements] = useState<LocalRecord[]>([]);
+
+  // 补录时间状态
+  const [manualDate, setManualDate] = useState(new Date());
+  const [showPicker, setShowPicker] = useState(false);
+  const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
+
+  /**
+   * 核心交互：分步选择日期和时间
+   */
+  const onDateChange = (event: any, selectedDate?: Date) => {
+    // 1. 如果是点击“取消”
+    if (event.type === 'dismissed') {
+      setShowPicker(false);
+      return;
+    }
+
+    // 2. 只有在确定选择后处理逻辑
+    if (selectedDate) {
+      if (selectedDate > new Date()) {
+        setShowPicker(false);
+        Alert.alert("提示", "不能选择未来的时间。");
+        return;
+      }
+
+      // 如果当前是日期模式，则记录日期并切换到时间模式
+      if (pickerMode === 'date') {
+        setManualDate(selectedDate);
+        if (Platform.OS === 'android') {
+          setShowPicker(false);
+          // Android 需要延迟一下再弹第二个，防止 UI 冲突
+          setTimeout(() => {
+            setPickerMode('time');
+            setShowPicker(true);
+          }, 100);
+        } else {
+          setPickerMode('time');
+        }
+      } else {
+        // 如果当前是时间模式，则记录最终结果并关闭
+        setManualDate(selectedDate);
+        setShowPicker(false);
+        setPickerMode('date'); // 重置回日期模式
+      }
+    }
+  };
+
+  const handleOpenPicker = () => {
+    setPickerMode('date');
+    setShowPicker(true);
+  };
 
   const addMeasurement = () => {
     const newRecord: LocalRecord = {
@@ -41,21 +91,9 @@ export const DataEntryScreen = () => {
       systolic,
       diastolic,
       pulse,
-      arm: arm // 锁定当前选中的手臂
+      arm: arm 
     };
     setMeasurements([newRecord, ...measurements]);
-  };
-
-  const removeMeasurement = (id: string) => {
-    setMeasurements(measurements.filter(m => m.id !== id));
-  };
-
-  const toggleNote = (note: string) => {
-    if (selectedNotes.includes(note)) {
-      setSelectedNotes(selectedNotes.filter(n => n !== note));
-    } else {
-      setSelectedNotes([...selectedNotes, note]);
-    }
   };
 
   const handleFinalSave = async () => {
@@ -63,15 +101,15 @@ export const DataEntryScreen = () => {
     const allNotes = [...selectedNotes];
     if (customNote.trim()) allNotes.push(customNote.trim());
 
-    // 关键：现在不再传递单一的 arm，而是让 Hook 处理 measurements 内部自带的 arm
-    const success = await saveMeasurementGroup(measurements, allNotes);
+    const success = await saveMeasurementGroup(measurements, allNotes, manualDate.toISOString());
     
     if (success) {
-      Alert.alert("保存成功", "血压数据已安全存入本地", [
+      Alert.alert("保存成功", "血压数据已录入", [
         { text: "确定", onPress: () => {
           setMeasurements([]);
           setSelectedNotes([]);
           setCustomNote('');
+          setManualDate(new Date()); 
         }}
       ]);
     } else {
@@ -83,6 +121,29 @@ export const DataEntryScreen = () => {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <ScaledText bold type="title" style={styles.header}>录入血压</ScaledText>
 
+      {/* 测量时间选择器 */}
+      <View style={styles.dateSelector}>
+        <ScaledText type="caption" color={Theme.colors.textSecondary}>测量时间：</ScaledText>
+        <TouchableOpacity style={styles.timeBox} onPress={handleOpenPicker}>
+          <ScaledText bold color={Theme.colors.primary}>
+            {manualDate.toLocaleDateString()} {manualDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </ScaledText>
+          <ScaledText type="caption" color={Theme.colors.primary} style={{ marginLeft: 10 }}>[修改]</ScaledText>
+        </TouchableOpacity>
+      </View>
+
+      {showPicker && (
+        <DateTimePicker
+          value={manualDate}
+          mode={pickerMode}
+          is24Hour={true}
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={onDateChange}
+          maximumDate={new Date()}
+        />
+      )}
+
+      {/* --- 其余 UI 逻辑保持不变 --- */}
       <View style={styles.card}>
         <Stepper label="收缩压 (高压)" value={systolic} onValueChange={setSystolic} min={60} max={220} />
         <Stepper label="舒张压 (低压)" value={diastolic} onValueChange={setDiastolic} min={40} max={150} />
@@ -90,7 +151,7 @@ export const DataEntryScreen = () => {
       </View>
 
       <View style={styles.section}>
-        <ScaledText type="caption" color={Theme.colors.textSecondary}>选择测量手臂</ScaledText>
+        <ScaledText type="caption" color={Theme.colors.textSecondary}>测量手臂</ScaledText>
         <View style={styles.row}>
           {(['L', 'R'] as const).map(item => (
             <TouchableOpacity 
@@ -126,7 +187,10 @@ export const DataEntryScreen = () => {
             <TouchableOpacity 
               key={note}
               style={[styles.tag, selectedNotes.includes(note) && styles.tagActive]}
-              onPress={() => toggleNote(note)}
+              onPress={() => {
+                if (selectedNotes.includes(note)) setSelectedNotes(selectedNotes.filter(n => n !== note));
+                else setSelectedNotes([...selectedNotes, note]);
+              }}
             >
               <ScaledText type="caption" color={selectedNotes.includes(note) ? Theme.colors.white : Theme.colors.textSecondary}>
                 {note}
@@ -153,7 +217,7 @@ export const DataEntryScreen = () => {
                 <ScaledText>{item.systolic}/{item.diastolic} <ScaledText type="caption">脉搏:{item.pulse}</ScaledText></ScaledText>
                 <ScaledText type="caption" color={Theme.colors.primary}>{item.arm === 'L' ? '左手测量' : '右手测量'}</ScaledText>
               </View>
-              <TouchableOpacity onPress={() => removeMeasurement(item.id)}>
+              <TouchableOpacity onPress={() => setMeasurements(measurements.filter(m => m.id !== item.id))}>
                 <ScaledText color={Theme.colors.danger}>删除</ScaledText>
               </TouchableOpacity>
             </View>
@@ -168,6 +232,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Theme.colors.background },
   content: { padding: Theme.spacing.md, paddingBottom: 60 },
   header: { marginVertical: Theme.spacing.lg },
+  dateSelector: { flexDirection: 'row', alignItems: 'center', marginBottom: 20, backgroundColor: '#f5f5f5', padding: 15, borderRadius: 15 },
+  timeBox: { flexDirection: 'row', alignItems: 'center' },
   card: { backgroundColor: Theme.colors.card, borderRadius: 24, paddingVertical: Theme.spacing.md, marginBottom: Theme.spacing.lg },
   section: { marginBottom: Theme.spacing.lg },
   row: { flexDirection: 'row', marginTop: Theme.spacing.sm },

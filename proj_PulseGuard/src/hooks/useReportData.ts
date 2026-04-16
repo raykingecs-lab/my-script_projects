@@ -2,51 +2,92 @@ import { useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { initDatabase, getHistoryForChart, BPRecord } from '../database/db';
 
+export type TimeRange = '7days' | '30days' | 'all';
+
 export const useReportData = () => {
   const [sysData, setSysData] = useState<any[]>([]);
   const [diaData, setDiaData] = useState<any[]>([]);
   const [historyList, setHistoryList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string | null>(null);
+  const [timeRange, setTimeRange] = useState<TimeRange>('7days');
 
   const formatData = useCallback(async () => {
     try {
+      setLoading(true);
       const db = await initDatabase();
-      const records = await getHistoryForChart(db);
+      const allRecords = await getHistoryForChart(db);
 
-      // 过滤逻辑
+      // 1. 时间跨度过滤
+      let filteredByTime = allRecords;
+      if (timeRange !== 'all') {
+        const now = new Date();
+        const days = timeRange === '7days' ? 7 : 30;
+        const cutoff = new Date(now.setDate(now.getDate() - days));
+        filteredByTime = allRecords.filter(r => new Date(r.created_at) >= cutoff);
+      }
+
+      // 2. 备注过滤
       const filteredRecords = filter 
-        ? records.filter(r => r.note && r.note.includes(filter)) 
-        : records;
+        ? filteredByTime.filter(r => r.note && r.note.includes(filter)) 
+        : filteredByTime;
 
-      const formattedSys = filteredRecords.map((r: BPRecord) => {
-        const date = new Date(r.created_at);
-        // JS 的 getHours() 会根据当前设备时区自动转换，因此这里是正确的本地小时
+      // 3. 数据处理逻辑：7天展示原始数据，30天/全部展示日平均值
+      let displayRecords: any[] = [];
+      
+      if (timeRange === '7days') {
+        displayRecords = filteredRecords.map(r => ({
+          systolic: r.systolic,
+          diastolic: r.diastolic,
+          date: new Date(r.created_at),
+          raw: r
+        }));
+      } else {
+        // 按日期聚合
+        const grouped: { [key: string]: { sys: number[], dia: number[], date: Date } } = {};
+        filteredRecords.forEach(r => {
+          const d = new Date(r.created_at);
+          const dateStr = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+          if (!grouped[dateStr]) grouped[dateStr] = { sys: [], dia: [], date: d };
+          grouped[dateStr].sys.push(r.systolic);
+          grouped[dateStr].dia.push(r.diastolic);
+        });
+
+        displayRecords = Object.values(grouped).map(g => ({
+          systolic: Math.round(g.sys.reduce((a, b) => a + b, 0) / g.sys.length),
+          diastolic: Math.round(g.dia.reduce((a, b) => a + b, 0) / g.dia.length),
+          date: g.date,
+          isAggregated: true
+        }));
+      }
+
+      const formattedSys = displayRecords.map((r: any) => {
+        const date = r.date;
         const hour = date.getHours();
         
         let iconType = '';
-        if (hour >= 6 && hour <= 10) iconType = 'sun';
-        else if (hour >= 20 || hour <= 2) iconType = 'moon';
+        if (!r.isAggregated) {
+          if (hour >= 6 && hour <= 10) iconType = 'sun';
+          else if (hour >= 20 || hour <= 2) iconType = 'moon';
+        }
 
         return {
           value: r.systolic,
           label: `${date.getMonth() + 1}/${date.getDate()}`,
           iconType,
-          hasNote: !!(r.note && r.note.trim()),
-          fullNote: r.note || '',
           dateStr: `${date.getMonth() + 1}/${date.getDate()}`,
-          timeStr: `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`,
+          timeStr: r.isAggregated ? '全天平均' : `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`,
           diastolicValue: r.diastolic,
-          isSys: true // 标识这是收缩压数据点
+          fullNote: r.raw?.note || '',
         };
       });
 
-      const formattedDia = filteredRecords.map((r: BPRecord) => ({
+      const formattedDia = displayRecords.map((r: any) => ({
         value: r.diastolic,
-        isDia: true // 标识这是舒张压数据点
       }));
 
-      const list = records.map((r: BPRecord) => {
+      // 列表依然展示明细
+      const list = filteredRecords.slice(-30).map((r: BPRecord) => {
         const date = new Date(r.created_at);
         return {
           ...r,
@@ -63,7 +104,7 @@ export const useReportData = () => {
       console.error('Report data error:', error);
       setLoading(false);
     }
-  }, [filter]);
+  }, [filter, timeRange]);
 
   useFocusEffect(
     useCallback(() => {
@@ -71,5 +112,5 @@ export const useReportData = () => {
     }, [formatData])
   );
 
-  return { sysData, diaData, historyList, loading, filter, setFilter };
+  return { sysData, diaData, historyList, loading, filter, setFilter, timeRange, setTimeRange };
 };

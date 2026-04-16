@@ -1,21 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, ScrollView, StyleSheet, ActivityIndicator, Dimensions, TouchableOpacity, Modal } from 'react-native';
 import { LineChart } from 'react-native-gifted-charts';
 import { Theme } from '../constants/Theme';
 import { ScaledText } from '../components/common/ScaledText';
-import { useReportData } from '../hooks/useReportData';
+import { useReportData, TimeRange } from '../hooks/useReportData';
 
 const screenWidth = Dimensions.get('window').width;
 const QUICK_FILTERS = ['服药后', '刚运动', '感冒中', '情绪波动'];
+const TIME_RANGES: { label: string; value: TimeRange }[] = [
+  { label: '7天明细', value: '7days' },
+  { label: '30天趋势', value: '30days' },
+  { label: '全部趋势', value: 'all' },
+];
 
 export const ReportsScreen = () => {
-  const { sysData, diaData, historyList, loading, filter, setFilter } = useReportData();
+  const { sysData, diaData, historyList, loading, filter, setFilter, timeRange, setTimeRange } = useReportData();
   const [selectedPoint, setSelectedGroup] = useState<any>(null);
 
-  if (loading) return <View style={styles.center}><ActivityIndicator size="large" color={Theme.colors.primary} /></View>;
+  // 动态计算间距，使图表宽度始终固定为屏幕宽度，无需滚动
+  const chartConfig = useMemo(() => {
+    const count = sysData.length;
+    const availableWidth = screenWidth - 100; // 预留左右边距
+    const spacing = count > 1 ? availableWidth / (count - 1) : availableWidth;
 
-  // 仅保留太阳/月亮图标渲染
+    return {
+      spacing: Math.max(spacing, 10), // 最小间距防止重叠
+      isDense: count > 15,
+      hideLabels: count > 31 // 如果天数太多，隐藏底部日期以防重叠
+    };
+  }, [sysData.length]);
+
+  if (loading && sysData.length === 0) return <View style={styles.center}><ActivityIndicator size="large" color={Theme.colors.primary} /></View>;
+
   const renderDataPointIcon = (item: any) => {
+    if (chartConfig.isDense && !selectedPoint) return null;
     if (item.iconType === 'sun') return <ScaledText style={styles.sunMoonIcon}>☀️</ScaledText>;
     if (item.iconType === 'moon') return <ScaledText style={styles.sunMoonIcon}>🌙</ScaledText>;
     return null;
@@ -23,17 +41,30 @@ export const ReportsScreen = () => {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <ScaledText bold type="title" style={styles.header}>趋势报表</ScaledText>
+      <ScaledText bold type="title" style={styles.header}>数据分析</ScaledText>
 
-      {/* 保留快速筛选功能 */}
+      {/* 视图切换：现在有了明确的语义区分 */}
+      <View style={styles.rangeSection}>
+        {TIME_RANGES.map((r) => (
+          <TouchableOpacity 
+            key={r.value} 
+            style={[styles.rangeTab, timeRange === r.value && styles.rangeTabActive]} 
+            onPress={() => setTimeRange(r.value)}
+          >
+            <ScaledText type="caption" bold={timeRange === r.value} color={timeRange === r.value ? Theme.colors.primary : '#666'}>
+              {r.label}
+            </ScaledText>
+          </TouchableOpacity>
+        ))}
+      </View>
+
       <View style={styles.filterSection}>
-        <ScaledText type="caption" color={Theme.colors.textSecondary} style={{ marginBottom: 10 }}>数据快捷筛选：</ScaledText>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <TouchableOpacity 
             style={[styles.filterChip, !filter && styles.filterChipActive]} 
             onPress={() => setFilter(null)}
           >
-            <ScaledText type="caption" color={!filter ? '#fff' : '#666'}>全部记录</ScaledText>
+            <ScaledText type="caption" color={!filter ? '#fff' : '#666'}>全部数据</ScaledText>
           </TouchableOpacity>
           {QUICK_FILTERS.map(f => (
             <TouchableOpacity 
@@ -51,70 +82,103 @@ export const ReportsScreen = () => {
         <View style={styles.chartCard}>
           <View style={styles.legend}>
             <View style={[styles.dot, { backgroundColor: Theme.colors.danger }]} />
-            <ScaledText type="caption">收缩压 (高压)</ScaledText>
-            <View style={[styles.dot, { backgroundColor: Theme.colors.primary, marginLeft: 20 }]} />
-            <ScaledText type="caption">舒张压 (低压)</ScaledText>
+            <ScaledText type="caption">收缩压 (均值)</ScaledText>
+            <View style={[styles.dot, { backgroundColor: Theme.colors.primary, marginLeft: 15 }]} />
+            <ScaledText type="caption">舒张压 (均值)</ScaledText>
           </View>
 
           <LineChart
+            areaChart
+            curved
             data={sysData}
             data2={diaData}
-            height={260}
+            height={220}
             width={screenWidth - 80}
-            spacing={70}
-            initialSpacing={30}
+            spacing={chartConfig.spacing}
+            initialSpacing={15}
             color1={Theme.colors.danger}
             color2={Theme.colors.primary}
-            thickness={4}
-            dataPointsHeight={10}
-            dataPointsWidth={10}
+            startFillColor1={Theme.colors.danger}
+            startFillColor2={Theme.colors.primary}
+            startOpacity={0.2}
+            endOpacity={0.05}
+            thickness={3}
+            hideDataPoints={chartConfig.isDense}
             dataPointsColor1={Theme.colors.danger}
             dataPointsColor2={Theme.colors.primary}
             renderDataPointIcon={(item: any) => renderDataPointIcon(item)}
             onPress={(item: any) => setSelectedGroup(item)}
-            xAxisLabelTextStyle={{ fontSize: 14, color: Theme.colors.textSecondary }}
-            maxValue={220}
-            noOfSections={5}
-            yAxisColor={Theme.colors.border}
+            xAxisLabelTextStyle={{ fontSize: 10, color: Theme.colors.textSecondary, opacity: chartConfig.hideLabels ? 0 : 1 }}
+            maxValue={200}
+            mostRecentValue={true}
+            noOfSections={4}
+            yAxisColor="transparent"
             xAxisColor={Theme.colors.border}
+            // 参考线优化：更粗、更亮、带标签
+            showReferenceLine1
+            referenceLine1Position={140}
+            referenceLine1Config={{ 
+              color: 'rgba(255, 69, 58, 0.6)', 
+              dashArray: [6, 4],
+              thickness: 2,
+              labelText: '140 (高压警戒)',
+              labelTextStyle: { fontSize: 10, color: '#ff453a', fontWeight: 'bold' }
+            }}
+            showReferenceLine2
+            referenceLine2Position={90}
+            referenceLine2Config={{ 
+              color: 'rgba(0, 122, 255, 0.6)', 
+              dashArray: [6, 4],
+              thickness: 2,
+              labelText: '90 (低压警戒)',
+              labelTextStyle: { fontSize: 10, color: '#007aff', fontWeight: 'bold' }
+            }}
           />
           
           <View style={styles.tipBox}>
             <ScaledText type="caption" color={Theme.colors.textSecondary}>
-              提示：☀️/🌙 分别代表清晨和夜间。点击数据点可查看数值。
+              {timeRange === '7days' ? '💡 7天视图展示每次测量的具体波动。' : '💡 30天/全部视图已自动合并每日平均值，展示平滑趋势。'}
             </ScaledText>
           </View>
         </View>
       ) : (
-        <View style={styles.emptyCard}><ScaledText center color={Theme.colors.textSecondary}>暂无符合条件的数据</ScaledText></View>
+        <View style={styles.emptyCard}>
+          {loading ? <ActivityIndicator color={Theme.colors.primary} /> : <ScaledText center color={Theme.colors.textSecondary}>暂无符合条件的数据</ScaledText>}
+        </View>
       )}
 
-      {/* 下方列表依然保留备注的文字展示，供参考 */}
-      <ScaledText bold type="body" style={styles.sectionTitle}>最近 30 条详细记录</ScaledText>
+      <ScaledText bold type="body" style={styles.sectionTitle}>最近明细记录</ScaledText>
       {historyList.map((item, index) => (
         <View key={index} style={styles.historyRow}>
           <View style={{ flex: 1 }}>
-            <ScaledText bold>{item.systolic}/{item.diastolic} mmHg</ScaledText>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+              <ScaledText bold type="body">{item.systolic}/{item.diastolic}</ScaledText>
+              <ScaledText type="caption" color={Theme.colors.textSecondary}> mmHg</ScaledText>
+            </View>
             <ScaledText type="caption" color={Theme.colors.textSecondary}>
               {item.dateLabel} {item.timeLabel} · {item.arm === 'L' ? '左手' : '右手'}
             </ScaledText>
-            {item.note ? <ScaledText type="caption" color={Theme.colors.primary}>备注：{item.note}</ScaledText> : null}
+            {item.note ? <ScaledText type="caption" color={Theme.colors.primary} style={{ marginTop: 4 }}>备注：{item.note}</ScaledText> : null}
+          </View>
+          <View style={[styles.statusTag, { backgroundColor: item.systolic > 140 ? '#ffebee' : '#e8f5e9' }]}>
+             <ScaledText type="caption" color={item.systolic > 140 ? Theme.colors.danger : '#4caf50'}>
+               {item.systolic > 140 ? '偏高' : '正常'}
+             </ScaledText>
           </View>
         </View>
       ))}
 
-      {/* 简易详情弹窗 */}
       <Modal visible={!!selectedPoint} transparent animationType="fade">
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setSelectedGroup(null)}>
           <View style={styles.tooltipCard}>
             <ScaledText bold type="body" color={Theme.colors.primary}>{selectedPoint?.dateStr} {selectedPoint?.timeStr}</ScaledText>
             <ScaledText bold type="title" style={{ marginVertical: 10 }}>{selectedPoint?.value}/{selectedPoint?.diastolicValue} mmHg</ScaledText>
-            {selectedPoint?.fullNote && (
+            {selectedPoint?.fullNote ? (
               <>
                 <View style={styles.tooltipDivider} />
-                <ScaledText type="body">{selectedPoint.fullNote}</ScaledText>
+                <ScaledText type="body">备注：{selectedPoint.fullNote}</ScaledText>
               </>
-            )}
+            ) : null}
             <TouchableOpacity style={styles.closeBtn} onPress={() => setSelectedGroup(null)}>
               <ScaledText color="#fff" bold>知道了</ScaledText>
             </TouchableOpacity>
@@ -129,20 +193,24 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Theme.colors.background },
   content: { padding: Theme.spacing.md, paddingBottom: 40 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { marginVertical: Theme.spacing.lg },
+  header: { marginTop: Theme.spacing.lg, marginBottom: 15 },
+  rangeSection: { flexDirection: 'row', backgroundColor: '#eee', borderRadius: 14, padding: 4, marginBottom: 20 },
+  rangeTab: { flex: 1, paddingVertical: 12, alignItems: 'center' },
+  rangeTabActive: { backgroundColor: '#fff', borderRadius: 10, elevation: 3, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4 },
   filterSection: { marginBottom: 20 },
-  filterChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: Theme.colors.card, marginRight: 10, borderWidth: 1, borderColor: '#eee' },
+  filterChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: Theme.colors.card, marginRight: 8, borderWidth: 1, borderColor: '#eee' },
   filterChipActive: { backgroundColor: Theme.colors.primary, borderColor: Theme.colors.primary },
-  chartCard: { backgroundColor: Theme.colors.white, padding: Theme.spacing.md, borderRadius: 24, elevation: 4, shadowColor: '#000', shadowOpacity: 0.1, marginBottom: 20 },
+  chartCard: { backgroundColor: Theme.colors.white, padding: Theme.spacing.md, borderRadius: 24, elevation: 5, shadowColor: '#000', shadowOpacity: 0.1, marginBottom: 20 },
   legend: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
-  dot: { width: 10, height: 10, borderRadius: 5, marginRight: 6 },
-  sunMoonIcon: { fontSize: 16, marginTop: -30 }, // 原始定位方案
-  tipBox: { marginTop: 20, borderTopWidth: 1, borderTopColor: '#f0f0f0', paddingTop: 10 },
-  emptyCard: { height: 200, justifyContent: 'center', backgroundColor: Theme.colors.card, borderRadius: 20 },
+  dot: { width: 8, height: 8, borderRadius: 4, marginRight: 6 },
+  sunMoonIcon: { fontSize: 14, marginTop: -25 },
+  tipBox: { marginTop: 15, borderTopWidth: 1, borderTopColor: '#f5f5f5', paddingTop: 10 },
+  emptyCard: { height: 220, justifyContent: 'center', backgroundColor: Theme.colors.card, borderRadius: 24 },
   sectionTitle: { marginVertical: 15 },
-  historyRow: { padding: 16, backgroundColor: Theme.colors.card, borderRadius: 12, marginBottom: 8 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
-  tooltipCard: { width: '80%', backgroundColor: '#fff', padding: 25, borderRadius: 24, elevation: 10 },
-  tooltipDivider: { height: 1, backgroundColor: '#eee', marginVertical: 15 },
-  closeBtn: { marginTop: 25, backgroundColor: Theme.colors.primary, padding: 15, borderRadius: 15, alignItems: 'center' }
+  historyRow: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: Theme.colors.white, borderRadius: 16, marginBottom: 10, elevation: 2 },
+  statusTag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
+  tooltipCard: { width: '85%', backgroundColor: '#fff', padding: 30, borderRadius: 28, elevation: 15 },
+  tooltipDivider: { height: 1, backgroundColor: '#f0f0f0', marginVertical: 15 },
+  closeBtn: { marginTop: 25, backgroundColor: Theme.colors.primary, padding: 16, borderRadius: 18, alignItems: 'center' }
 });

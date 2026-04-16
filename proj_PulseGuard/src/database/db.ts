@@ -114,7 +114,7 @@ export const getAllRecords = async (db: SQLite.SQLiteDatabase) => {
 
 export const getHistoryForChart = async (db: SQLite.SQLiteDatabase) => {
   const records = await db.getAllAsync<any>(
-    'SELECT * FROM bp_records WHERE is_avg_group = 1 ORDER BY created_at ASC LIMIT 30'
+    'SELECT * FROM bp_records WHERE is_avg_group = 1 ORDER BY created_at ASC'
   );
   return records.map(mapRecord);
 };

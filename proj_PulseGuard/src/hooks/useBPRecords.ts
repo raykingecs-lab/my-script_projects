@@ -10,17 +10,19 @@ export const useBPRecords = () => {
   }, []);
 
   /**
-   * 保存一组测量数据 (支持多手臂混合录入)
+   * 保存一组测量数据 (支持多手臂及自定义时间)
    */
   const saveMeasurementGroup = async (
     measurements: Array<{ systolic: number; diastolic: number; pulse: number; arm: 'L' | 'R' }>,
-    notes: string[]
+    notes: string[],
+    customCreatedAt?: string // 新增：可选的补录时间
   ) => {
     if (!db || measurements.length === 0) return false;
 
     try {
       const groupId = `G_${Date.now()}`;
-      const createdAt = new Date().toISOString();
+      // 如果有自定义时间则用自定义的，否则用当前 ISO 字符串
+      const finalCreatedAt = customCreatedAt || new Date().toISOString();
       const noteString = notes.join(', ');
 
       // 1. 插入所有原始明细记录
@@ -30,9 +32,9 @@ export const useBPRecords = () => {
           systolic: m.systolic,
           diastolic: m.diastolic,
           pulse: m.pulse,
-          arm: m.arm, // 使用记录自带的手臂属性
+          arm: m.arm,
           note: noteString,
-          created_at: createdAt,
+          created_at: finalCreatedAt,
           is_avg_group: false,
         });
       }
@@ -56,7 +58,7 @@ export const useBPRecords = () => {
           pulse: avgPulse,
           arm: currentArm,
           note: noteString,
-          created_at: createdAt,
+          created_at: finalCreatedAt,
           is_avg_group: true,
         });
       }
