@@ -18,18 +18,58 @@ export const ReportsScreen = () => {
   const { sysData, diaData, historyList, loading, filter, setFilter, timeRange, setTimeRange } = useReportData();
   const [selectedPoint, setSelectedGroup] = useState<any>(null);
 
-  // 动态计算间距，使图表宽度始终固定为屏幕宽度，无需滚动
+  // 动态计算间距，使图表宽度始终固定为屏幕宽度，实现零滚动适配
   const chartConfig = useMemo(() => {
     const count = sysData.length;
-    const availableWidth = screenWidth - 100; // 预留左右边距
+    const availableWidth = screenWidth - 95; 
     const spacing = count > 1 ? availableWidth / (count - 1) : availableWidth;
 
     return {
-      spacing: Math.max(spacing, 10), // 最小间距防止重叠
+      spacing: Math.max(spacing, 6), 
       isDense: count > 15,
-      hideLabels: count > 31 // 如果天数太多，隐藏底部日期以防重叠
     };
   }, [sysData.length]);
+
+  // 核心优化：使用 labelComponent 彻底解决 4/... 的截断问题
+  const processedSysData = useMemo(() => {
+    const count = sysData.length;
+    if (count === 0) return [];
+
+    const renderLabel = (label: string) => (
+      <View style={{ width: 60, marginLeft: -25, alignItems: 'center', justifyContent: 'center' }}>
+        <ScaledText type="caption" style={{ fontSize: 10, color: Theme.colors.textSecondary }}>{label}</ScaledText>
+      </View>
+    );
+
+    if (timeRange === '7days') {
+      let lastDate = '';
+      return sysData.map((item, index) => {
+        const isNewDay = index === 0 || item.dateStr !== lastDate;
+        if (isNewDay) {
+          lastDate = item.dateStr;
+          return { 
+            ...item, 
+            label: ' ', // 必须保留一个空格，否则 labelComponent 可能不渲染
+            labelComponent: () => renderLabel(item.dateStr) 
+          };
+        }
+        return { ...item, label: ' ' };
+      });
+    } else {
+      if (count <= 8) return sysData.map(item => ({ ...item, label: ' ', labelComponent: () => renderLabel(item.dateStr) }));
+      const step = Math.ceil(count / 6);
+      return sysData.map((item, index) => {
+        const isFirst = index === 0;
+        const isLast = index === count - 1;
+        const isStep = index % step === 0;
+        const tooCloseToLast = (count - 1 - index) < (step * 0.6);
+        if (isFirst || isLast || (isStep && !tooCloseToLast)) {
+          return { ...item, label: ' ', labelComponent: () => renderLabel(item.dateStr) };
+        }
+        return { ...item, label: ' ' };
+      });
+    }
+  }, [sysData, timeRange]);
 
   if (loading && sysData.length === 0) return <View style={styles.center}><ActivityIndicator size="large" color={Theme.colors.primary} /></View>;
 
@@ -44,7 +84,7 @@ export const ReportsScreen = () => {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <ScaledText bold type="title" style={styles.header}>数据分析</ScaledText>
 
-      {/* 视图切换：现在有了明确的语义区分 */}
+      {/* 视图切换 */}
       <View style={styles.rangeSection}>
         {TIME_RANGES.map((r) => (
           <TouchableOpacity 
@@ -91,12 +131,12 @@ export const ReportsScreen = () => {
           <LineChart
             areaChart
             curved
-            data={sysData}
+            data={processedSysData}
             data2={diaData}
             height={220}
             width={screenWidth - 80}
             spacing={chartConfig.spacing}
-            initialSpacing={15}
+            initialSpacing={25}
             color1={Theme.colors.danger}
             color2={Theme.colors.primary}
             startFillColor1={Theme.colors.danger}
@@ -109,24 +149,22 @@ export const ReportsScreen = () => {
             dataPointsColor2={Theme.colors.primary}
             renderDataPointIcon={(item: any) => renderDataPointIcon(item)}
             onPress={(item: any) => setSelectedGroup(item)}
-            xAxisLabelTextStyle={{ fontSize: 10, color: Theme.colors.textSecondary, opacity: chartConfig.hideLabels ? 0 : 1 }}
-            // Y轴优化：起始点 50，终点 200
+            xAxisLabelTextStyle={{ fontSize: 9, color: Theme.colors.textSecondary }}
             yAxisOffset={50}
-            maxValue={150} // maxValue 是相对于 offset 的增量：200 - 50 = 150
-            noOfSections={5} // 50, 80, 110, 140, 170, 200
+            maxValue={150}
+            noOfSections={5}
             stepValue={30}
             mostRecentValue={true}
             yAxisColor="transparent"
             xAxisColor={Theme.colors.border}
-            // 参考线优化：更粗、更亮、带标签
             showReferenceLine1
             referenceLine1Position={140}
             referenceLine1Config={{ 
               color: 'rgba(255, 69, 58, 0.6)', 
               dashArray: [6, 4],
               thickness: 2,
-              labelText: '140 (高压警戒)',
-              labelTextStyle: { fontSize: 10, color: '#ff453a', fontWeight: 'bold' }
+              labelText: '140',
+              labelTextStyle: { fontSize: 9, color: '#ff453a', fontWeight: 'bold' }
             }}
             showReferenceLine2
             referenceLine2Position={90}
@@ -134,8 +172,8 @@ export const ReportsScreen = () => {
               color: 'rgba(0, 122, 255, 0.6)', 
               dashArray: [6, 4],
               thickness: 2,
-              labelText: '90 (低压警戒)',
-              labelTextStyle: { fontSize: 10, color: '#007aff', fontWeight: 'bold' }
+              labelText: '90',
+              labelTextStyle: { fontSize: 9, color: '#007aff', fontWeight: 'bold' }
             }}
           />
           
