@@ -22,7 +22,8 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.raykingecs.PulseGuard"
+      "package": "com.raykingecs.PulseGuard",
+      "permissions": []
     },
     "web": {
       "favicon": "./assets/favicon.png"

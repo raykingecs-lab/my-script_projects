@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Theme } from '../constants/Theme';
 import { ScaledText } from '../components/common/ScaledText';
@@ -6,7 +6,27 @@ import { useSettingsLogic } from '../hooks/useSettingsLogic';
 import { Ionicons } from '@expo/vector-icons';
 
 export const SettingsScreen = () => {
-  const { exportCSV, backupDatabase, restoreDatabase } = useSettingsLogic();
+  const { exportCSV, backupDatabase, restoreDatabase, getLastBackupTime } = useSettingsLogic();
+  const [lastBackup, setLastBackup] = useState<string | null>(null);
+
+  const loadBackupTime = async () => {
+    const time = await getLastBackupTime();
+    if (time) {
+      const date = new Date(time);
+      const formatted = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+      setLastBackup(formatted);
+    }
+  };
+
+  useEffect(() => {
+    loadBackupTime();
+  }, []);
+
+  const handleBackup = async () => {
+    await backupDatabase();
+    // 备份后刷新时间显示
+    loadBackupTime();
+  };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -26,15 +46,25 @@ export const SettingsScreen = () => {
           </View>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.bigButton, { marginTop: 20 }]} onPress={backupDatabase}>
-          <Ionicons name="cloud-upload-outline" size={32} color={Theme.colors.success} />
-          <View style={styles.buttonTextContainer}>
-            <ScaledText bold>全量备份数据库</ScaledText>
-            <ScaledText type="caption" color={Theme.colors.textSecondary}>
-              导出原始 .db 文件，用于备份数据
-            </ScaledText>
-          </View>
-        </TouchableOpacity>
+        <View style={styles.backupContainer}>
+          <TouchableOpacity style={styles.bigButton} onPress={handleBackup}>
+            <Ionicons name="cloud-upload-outline" size={32} color={Theme.colors.success} />
+            <View style={styles.buttonTextContainer}>
+              <ScaledText bold>全量备份数据库</ScaledText>
+              <ScaledText type="caption" color={Theme.colors.textSecondary}>
+                导出原始 .db 文件，用于更换手机或备份
+              </ScaledText>
+            </View>
+          </TouchableOpacity>
+          {lastBackup && (
+            <View style={styles.backupTimeHint}>
+              <Ionicons name="time-outline" size={14} color={Theme.colors.textSecondary} style={{marginRight: 4}} />
+              <ScaledText type="caption" color={Theme.colors.textSecondary}>
+                上次备份时间：{lastBackup}
+              </ScaledText>
+            </View>
+          )}
+        </View>
 
         <TouchableOpacity style={[styles.bigButton, { marginTop: 20 }]} onPress={restoreDatabase}>
           <Ionicons name="cloud-download-outline" size={32} color={Theme.colors.primary} />
@@ -102,6 +132,15 @@ const styles = StyleSheet.create({
   buttonTextContainer: {
     marginLeft: Theme.spacing.md,
     flex: 1,
+  },
+  backupContainer: {
+    marginTop: 20,
+  },
+  backupTimeHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    marginLeft: 16,
   },
   aboutCard: {
     backgroundColor: Theme.colors.card,

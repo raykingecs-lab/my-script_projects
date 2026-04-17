@@ -42,6 +42,10 @@ export const initDatabase = async () => {
         time TEXT NOT NULL,
         s_enabled INTEGER DEFAULT 1
       );
+      CREATE TABLE IF NOT EXISTS metadata (
+        key TEXT PRIMARY KEY,
+        value TEXT
+      );
     `);
     
     dbInstance = db;
@@ -181,4 +185,20 @@ export const getRawDetailsByGroupId = async (db: SQLite.SQLiteDatabase, groupId:
 // 删除一组记录
 export const deleteGroup = async (db: SQLite.SQLiteDatabase, groupId: string) => {
   return await db.runAsync('DELETE FROM bp_records WHERE group_id = ?', [groupId]);
+};
+
+// --- 元数据操作 ---
+export const setMetadata = async (db: SQLite.SQLiteDatabase, key: string, value: string) => {
+  return await db.runAsync(
+    'INSERT OR REPLACE INTO metadata (key, value) VALUES (?, ?)',
+    [key, value]
+  );
+};
+
+export const getMetadata = async (db: SQLite.SQLiteDatabase, key: string) => {
+  const result = await db.getFirstAsync<{ value: string }>(
+    'SELECT value FROM metadata WHERE key = ?',
+    [key]
+  );
+  return result ? result.value : null;
 };

@@ -3,6 +3,7 @@ import { View, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { Theme } from '../constants/Theme';
 import { ScaledText } from '../components/common/ScaledText';
 import { useDashboardStats } from '../hooks/useDashboardStats';
+import { getBPStatus } from '../utils/healthUtils';
 
 export const DashboardScreen = () => {
   const { latestL, latestR, range, morningAvg, conclusion, loading, getStatusColor } = useDashboardStats();
@@ -15,6 +16,8 @@ export const DashboardScreen = () => {
     );
   }
 
+  const hasData = latestL || latestR;
+
   const getColor = () => {
     const lColor = latestL ? getStatusColor(latestL.systolic, latestL.diastolic) : Theme.colors.success;
     const rColor = latestR ? getStatusColor(latestR.systolic, latestR.diastolic) : Theme.colors.success;
@@ -23,29 +26,34 @@ export const DashboardScreen = () => {
     return Theme.colors.success;
   };
 
-  const heroBgColor = (!latestL && !latestR) ? Theme.colors.card : getColor();
+  const heroBgColor = !hasData ? '#f5f5f5' : getColor();
+  const heroTextColor = !hasData ? Theme.colors.text : Theme.colors.white;
 
   const renderHeroValue = (label: string, record: any) => (
     <View style={styles.heroSubSection}>
       <View style={styles.heroLabelRow}>
-        <ScaledText bold type="caption" color={Theme.colors.white}>{label}</ScaledText>
+        <ScaledText bold type="caption" color={heroTextColor}>{label}</ScaledText>
       </View>
       {record ? (
         <View style={styles.heroValueRow}>
-          <ScaledText bold type="title" color={Theme.colors.white} style={styles.heroNumber}>
+          <ScaledText bold type="title" color={heroTextColor} style={styles.heroNumber}>
             {record.systolic}/{record.diastolic}
           </ScaledText>
-          <ScaledText type="body" color={Theme.colors.white} style={{ marginLeft: 8 }}>
+          <ScaledText type="body" color={heroTextColor} style={{ marginLeft: 8 }}>
             mmHg
           </ScaledText>
         </View>
       ) : (
-        <ScaledText type="body" color={Theme.colors.white} style={{ opacity: 0.8 }}>
-          暂无数据
+        <ScaledText type="body" color={heroTextColor} style={{ opacity: 0.6 }}>
+          尚未记录
         </ScaledText>
       )}
     </View>
   );
+
+  // 计算波动范围的状态颜色
+  const maxStatus = range.max_sys > 0 ? getBPStatus(range.max_sys, range.max_dia) : null;
+  const minStatus = range.min_sys > 0 ? getBPStatus(range.min_sys, range.min_dia) : null;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -53,15 +61,15 @@ export const DashboardScreen = () => {
 
       {/* 1. 状态英雄位 */}
       <View style={[styles.heroCard, { backgroundColor: heroBgColor }]}>
-        <ScaledText bold type="caption" color={Theme.colors.white} style={{ marginBottom: 16 }}>
+        <ScaledText bold type="caption" color={heroTextColor} style={{ marginBottom: 16, opacity: 0.8 }}>
           最新一次测量 (左/右手)
         </ScaledText>
         {renderHeroValue("左手测量", latestL)}
-        <View style={styles.heroHorizontalDivider} />
+        <View style={[styles.heroHorizontalDivider, { backgroundColor: !hasData ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.2)' }]} />
         {renderHeroValue("右手测量", latestR)}
       </View>
 
-      {/* 2. 健康结论区 (环比对比结论) */}
+      {/* 2. 健康结论区 */}
       <View style={[styles.infoCard, { borderColor: Theme.colors.primary, borderWidth: 1 }]}>
         <ScaledText bold type="caption" color={Theme.colors.primary}>本周健康分析结论</ScaledText>
         <ScaledText bold type="body" style={{ marginTop: 8, lineHeight: 32 }}>
@@ -77,13 +85,20 @@ export const DashboardScreen = () => {
         </ScaledText>
       </View>
 
-      {/* 4. 本周波动范围 (基本盘参考，移至末尾) */}
+      {/* 4. 本周波动范围 */}
       <View style={styles.infoCard}>
         <ScaledText type="caption" color={Theme.colors.textSecondary}>本周波动范围 (最低~最高)</ScaledText>
         {range.max_sys > 0 ? (
-          <ScaledText bold type="body">
-            {range.min_sys}/{range.min_dia} ~ {range.max_sys}/{range.max_dia}
-          </ScaledText>
+          <View style={{ flexDirection: 'row', alignItems: 'baseline', marginTop: 4 }}>
+            <ScaledText bold type="body" color={minStatus?.color}>
+              {range.min_sys}/{range.min_dia}
+            </ScaledText>
+            <ScaledText type="body" color={Theme.colors.textSecondary}> ~ </ScaledText>
+            <ScaledText bold type="body" color={maxStatus?.color}>
+              {range.max_sys}/{range.max_dia}
+            </ScaledText>
+            <ScaledText type="caption" color={Theme.colors.textSecondary}> mmHg</ScaledText>
+          </View>
         ) : (
           <ScaledText type="body">数据不足</ScaledText>
         )}
@@ -110,10 +125,10 @@ const styles = StyleSheet.create({
     minHeight: 220,
     justifyContent: 'center',
     marginBottom: Theme.spacing.lg,
-    elevation: 6,
+    elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.1,
     shadowRadius: 8,
   },
   heroSubSection: { paddingVertical: 8 },
@@ -122,7 +137,6 @@ const styles = StyleSheet.create({
   heroNumber: { fontSize: 42 },
   heroHorizontalDivider: {
     height: 1,
-    backgroundColor: 'rgba(255,255,255,0.2)',
     marginVertical: 12,
   },
   infoCard: {

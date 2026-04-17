@@ -1,7 +1,7 @@
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as DocumentPicker from 'expo-document-picker';
-import { initDatabase, getAllRecords } from '../database/db';
+import { initDatabase, getAllRecords, setMetadata, getMetadata } from '../database/db';
 import { Alert } from 'react-native';
 
 export const useSettingsLogic = () => {
@@ -51,6 +51,10 @@ export const useSettingsLogic = () => {
       await FileSystem.copyAsync({ from: dbUri, to: cacheUri });
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(cacheUri, { dialogTitle: '备份数据库文件', mimeType: 'application/octet-stream' });
+        
+        // 成功分享后记录时间
+        const db = await initDatabase();
+        await setMetadata(db, 'last_backup_time', new Date().toISOString());
       } else {
         Alert.alert('错误', '设备不支持分享');
       }
@@ -73,7 +77,7 @@ export const useSettingsLogic = () => {
 
       const selectedFile = result.assets[0];
       
-      // 安全检查：确认文件格式 (SQLite 头部校验或简单后缀检查)
+      // 安全检查：确认文件格式
       if (!selectedFile.name.endsWith('.db')) {
         Alert.alert('错误', '请选择正确的 .db 数据库备份文件');
         return;
@@ -91,19 +95,17 @@ export const useSettingsLogic = () => {
               const dbDir = `${FileSystem.documentDirectory}SQLite/`;
               const dbUri = `${dbDir}pulseguard.db`;
 
-              // 1. 确保目录存在
               const dirInfo = await FileSystem.getInfoAsync(dbDir);
               if (!dirInfo.exists) {
                 await FileSystem.makeDirectoryAsync(dbDir, { intermediates: true });
               }
 
-              // 2. 覆盖文件
               await FileSystem.copyAsync({
                 from: selectedFile.uri,
                 to: dbUri
               });
 
-              Alert.alert("恢复成功", "数据已成功导入。请彻底退出并重新打开应用，以刷新显示内容。");
+              Alert.alert("恢复成功", "数据已成功导入。请彻底退出并重新打开应用。");
             }
           }
         ]
@@ -114,5 +116,10 @@ export const useSettingsLogic = () => {
     }
   };
 
-  return { exportCSV, backupDatabase, restoreDatabase };
+  const getLastBackupTime = async () => {
+    const db = await initDatabase();
+    return await getMetadata(db, 'last_backup_time');
+  };
+
+  return { exportCSV, backupDatabase, restoreDatabase, getLastBackupTime };
 };

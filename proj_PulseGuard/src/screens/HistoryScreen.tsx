@@ -5,6 +5,7 @@ import { Theme } from '../constants/Theme';
 import { ScaledText } from '../components/common/ScaledText';
 import { initDatabase, getHistoryGroupedByDate, getSummariesByDate, getRawDetailsByGroupId, deleteGroup, BPRecord } from '../database/db';
 import { useSettingsLogic } from '../hooks/useSettingsLogic';
+import { getBPStatus } from '../utils/healthUtils';
 
 export const HistoryScreen = () => {
   const { exportCSV } = useSettingsLogic();
@@ -80,33 +81,48 @@ export const HistoryScreen = () => {
         ) : (
           groupedData.map((day) => {
             const isDayExpanded = !!expandedDates.includes(day.date);
+            const dayStatus = getBPStatus(day.day_avg_sys, day.day_avg_dia);
+            
             return (
               <View key={day.date} style={styles.dateSection}>
                 <TouchableOpacity style={styles.dateHeader} onPress={() => toggleDate(day.date)}>
                   <View style={{ flex: 1 }}>
                     <ScaledText bold>{day.date}</ScaledText>
                     <ScaledText type="caption" color={Theme.colors.textSecondary}>
-                      平均 {Math.round(day.day_avg_sys)}/{Math.round(day.day_avg_dia)} | {day.count}次
+                      日均值 {Math.round(day.day_avg_sys)}/{Math.round(day.day_avg_dia)} | {day.count}次
                     </ScaledText>
                   </View>
-                  <ScaledText color={Theme.colors.primary}>{isDayExpanded ? "收起" : "点击展开"}</ScaledText>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <View style={[styles.miniStatus, { backgroundColor: dayStatus.color }]} />
+                    <ScaledText color={Theme.colors.primary} style={{ marginRight: 4, marginLeft: 8 }}>
+                      {isDayExpanded ? "收起" : "点击展开"}
+                    </ScaledText>
+                    <ScaledText color={Theme.colors.primary}>{isDayExpanded ? "▲" : "▼"}</ScaledText>
+                  </View>
                 </TouchableOpacity>
 
                 {isDayExpanded && dayDetails[day.date]?.map((rec) => {
                    const timeStr = new Date(rec.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                   const status = getBPStatus(rec.systolic, rec.diastolic);
+                   
                    return (
-                    <View key={rec.group_id} style={styles.recordItem}>
+                    <View key={rec.id} style={styles.recordItem}>
                       <TouchableOpacity 
-                        style={{ flex: 1 }} 
+                        style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }} 
                         onPress={() => openDetail(rec.group_id, day.date, timeStr)}
                       >
-                        <ScaledText bold>{timeStr} · {rec.systolic}/{rec.diastolic} mmHg</ScaledText>
-                        <ScaledText type="caption" color={Theme.colors.textSecondary}>
-                          {rec.arm === 'L' ? '左手' : '右手'} {rec.note ? ` | ${rec.note}` : ''}
-                        </ScaledText>
+                        <View style={{ flex: 1 }}>
+                          <ScaledText bold>{timeStr} · {rec.systolic}/{rec.diastolic} mmHg</ScaledText>
+                          <ScaledText type="caption" color={Theme.colors.textSecondary}>
+                            {rec.arm === 'L' ? '左手' : '右手'} {rec.note ? ` | ${rec.note}` : ''}
+                          </ScaledText>
+                        </View>
+                        <View style={[styles.listStatusTag, { backgroundColor: status.bg }]}>
+                           <ScaledText type="caption" bold color={status.color}>{status.label}</ScaledText>
+                        </View>
                       </TouchableOpacity>
                       <TouchableOpacity onPress={() => handleDelete(rec.group_id)} style={styles.deleteBtn}>
-                        <ScaledText color="red">删除</ScaledText>
+                        <ScaledText color="#ccc" type="caption">删除</ScaledText>
                       </TouchableOpacity>
                     </View>
                   );
@@ -163,7 +179,9 @@ const styles = StyleSheet.create({
   dateSection: { marginBottom: 12, backgroundColor: '#f9f9f9', borderRadius: 16, overflow: 'hidden', elevation: 1 },
   dateHeader: { padding: 16, flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#eee' },
   recordItem: { padding: 16, flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  deleteBtn: { padding: 10 },
+  deleteBtn: { paddingLeft: 15, paddingVertical: 10 },
+  miniStatus: { width: 8, height: 8, borderRadius: 4 },
+  listStatusTag: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, marginRight: 10 },
   // Modal 样式
   modalContainer: { flex: 1, backgroundColor: '#fff' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, marginTop: 40, borderBottomWidth: 1, borderBottomColor: '#eee' },

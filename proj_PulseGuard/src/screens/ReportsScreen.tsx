@@ -4,6 +4,7 @@ import { LineChart } from 'react-native-gifted-charts';
 import { Theme } from '../constants/Theme';
 import { ScaledText } from '../components/common/ScaledText';
 import { useReportData, TimeRange } from '../hooks/useReportData';
+import { getBPStatus } from '../utils/healthUtils';
 
 const screenWidth = Dimensions.get('window').width;
 const QUICK_FILTERS = ['服药后', '刚运动', '感冒中', '情绪波动'];
@@ -109,9 +110,12 @@ export const ReportsScreen = () => {
             renderDataPointIcon={(item: any) => renderDataPointIcon(item)}
             onPress={(item: any) => setSelectedGroup(item)}
             xAxisLabelTextStyle={{ fontSize: 10, color: Theme.colors.textSecondary, opacity: chartConfig.hideLabels ? 0 : 1 }}
-            maxValue={200}
+            // Y轴优化：起始点 50，终点 200
+            yAxisOffset={50}
+            maxValue={150} // maxValue 是相对于 offset 的增量：200 - 50 = 150
+            noOfSections={5} // 50, 80, 110, 140, 170, 200
+            stepValue={30}
             mostRecentValue={true}
-            noOfSections={4}
             yAxisColor="transparent"
             xAxisColor={Theme.colors.border}
             // 参考线优化：更粗、更亮、带标签
@@ -148,25 +152,26 @@ export const ReportsScreen = () => {
       )}
 
       <ScaledText bold type="body" style={styles.sectionTitle}>最近明细记录</ScaledText>
-      {historyList.map((item, index) => (
-        <View key={index} style={styles.historyRow}>
-          <View style={{ flex: 1 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-              <ScaledText bold type="body">{item.systolic}/{item.diastolic}</ScaledText>
-              <ScaledText type="caption" color={Theme.colors.textSecondary}> mmHg</ScaledText>
+      {historyList.map((item, index) => {
+        const status = getBPStatus(item.systolic, item.diastolic);
+        return (
+          <View key={index} style={styles.historyRow}>
+            <View style={{ flex: 1 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                <ScaledText bold type="body">{item.systolic}/{item.diastolic}</ScaledText>
+                <ScaledText type="caption" color={Theme.colors.textSecondary}> mmHg</ScaledText>
+              </View>
+              <ScaledText type="caption" color={Theme.colors.textSecondary}>
+                {item.dateLabel} {item.timeLabel} · {item.arm === 'L' ? '左手' : '右手'}
+              </ScaledText>
+              {item.note ? <ScaledText type="caption" color={Theme.colors.primary} style={{ marginTop: 4 }}>备注：{item.note}</ScaledText> : null}
             </View>
-            <ScaledText type="caption" color={Theme.colors.textSecondary}>
-              {item.dateLabel} {item.timeLabel} · {item.arm === 'L' ? '左手' : '右手'}
-            </ScaledText>
-            {item.note ? <ScaledText type="caption" color={Theme.colors.primary} style={{ marginTop: 4 }}>备注：{item.note}</ScaledText> : null}
+            <View style={[styles.statusTag, { backgroundColor: status.bg }]}>
+               <ScaledText type="caption" bold color={status.color}>{status.label}</ScaledText>
+            </View>
           </View>
-          <View style={[styles.statusTag, { backgroundColor: item.systolic > 140 ? '#ffebee' : '#e8f5e9' }]}>
-             <ScaledText type="caption" color={item.systolic > 140 ? Theme.colors.danger : '#4caf50'}>
-               {item.systolic > 140 ? '偏高' : '正常'}
-             </ScaledText>
-          </View>
-        </View>
-      ))}
+        );
+      })}
 
       <Modal visible={!!selectedPoint} transparent animationType="fade">
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setSelectedGroup(null)}>
