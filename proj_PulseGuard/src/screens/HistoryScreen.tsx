@@ -8,7 +8,7 @@ import { useSettingsLogic } from '../hooks/useSettingsLogic';
 import { getBPStatus } from '../utils/healthUtils';
 
 export const HistoryScreen = () => {
-  const { exportCSV } = useSettingsLogic();
+  const { exportPDF } = useSettingsLogic();
   const [groupedData, setGroupedData] = useState<any[]>([]);
   const [expandedDates, setExpandedDates] = useState<string[]>([]);
   const [dayDetails, setDayDetails] = useState<Record<string, BPRecord[]>>({});
@@ -70,8 +70,8 @@ export const HistoryScreen = () => {
     <View style={styles.container}>
       <View style={styles.header}>
         <ScaledText bold type="title">历史记录</ScaledText>
-        <TouchableOpacity style={styles.exportBtn} onPress={exportCSV}>
-          <ScaledText bold color={Theme.colors.primary}>导出数据</ScaledText>
+        <TouchableOpacity style={styles.exportBtn} onPress={exportPDF}>
+          <ScaledText bold color={Theme.colors.primary}>导出报告 (PDF)</ScaledText>
         </TouchableOpacity>
       </View>
 

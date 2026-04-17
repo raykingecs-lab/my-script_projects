@@ -6,7 +6,7 @@ import { useSettingsLogic } from '../hooks/useSettingsLogic';
 import { Ionicons } from '@expo/vector-icons';
 
 export const SettingsScreen = () => {
-  const { exportCSV, backupDatabase, restoreDatabase, getLastBackupTime } = useSettingsLogic();
+  const { exportPDF, backupDatabase, restoreDatabase, getLastBackupTime } = useSettingsLogic();
   const [lastBackup, setLastBackup] = useState<string | null>(null);
 
   const loadBackupTime = async () => {
@@ -24,7 +24,6 @@ export const SettingsScreen = () => {
 
   const handleBackup = async () => {
     await backupDatabase();
-    // 备份后刷新时间显示
     loadBackupTime();
   };
 
@@ -36,12 +35,12 @@ export const SettingsScreen = () => {
       <View style={styles.section}>
         <ScaledText bold type="body" style={styles.sectionTitle}>数据管理</ScaledText>
         
-        <TouchableOpacity style={styles.bigButton} onPress={exportCSV}>
+        <TouchableOpacity style={styles.bigButton} onPress={exportPDF}>
           <Ionicons name="document-text-outline" size={32} color={Theme.colors.primary} />
           <View style={styles.buttonTextContainer}>
-            <ScaledText bold>导出血压明细 (CSV)</ScaledText>
+            <ScaledText bold>导出血压明细 (PDF)</ScaledText>
             <ScaledText type="caption" color={Theme.colors.textSecondary}>
-              生成 Excel 可读表格，支持发送给医生
+              生成专业的图表报告，方便微信发送给医生
             </ScaledText>
           </View>
         </TouchableOpacity>

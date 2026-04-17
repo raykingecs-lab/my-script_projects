@@ -1,15 +1,16 @@
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as DocumentPicker from 'expo-document-picker';
+import * as Print from 'expo-print';
 import { initDatabase, getAllRecords, setMetadata, getMetadata } from '../database/db';
 import { Alert } from 'react-native';
 
 export const useSettingsLogic = () => {
   
   /**
-   * 导出所有数据为 CSV
+   * 导出血压明细为 PDF
    */
-  const exportCSV = async () => {
+  const exportPDF = async () => {
     try {
       const db = await initDatabase();
       const records = await getAllRecords(db);
@@ -17,16 +18,85 @@ export const useSettingsLogic = () => {
         Alert.alert('提示', '暂无数据可导出');
         return;
       }
-      let csvContent = '\uFEFF时间,收缩压,舒张压,心率,手臂,备注,是否汇总\n';
-      records.forEach(r => {
-        const safeNote = (r.note || '').replace(/"/g, '""');
-        csvContent += `${r.created_at},${r.systolic},${r.diastolic},${r.pulse},${r.arm},"${safeNote}",${r.is_avg_group ? '是' : '否'}\n`;
+
+      // 构建 HTML 报表内容
+      const rows = records.map(r => {
+        const date = new Date(r.created_at);
+        const dateStr = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+        const timeStr = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+        const isHigh = r.systolic >= 140 || r.diastolic >= 90;
+        
+        return `
+          <tr>
+            <td>${dateStr} ${timeStr}</td>
+            <td style="color: ${isHigh ? '#ff453a' : '#333'}; font-weight: ${isHigh ? 'bold' : 'normal'}">
+              ${r.systolic} / ${r.diastolic}
+            </td>
+            <td>${r.pulse}</td>
+            <td>${r.arm === 'L' ? '左手' : '右手'}</td>
+            <td>${r.note || '-'}</td>
+          </tr>
+        `;
+      }).join('');
+
+      const htmlContent = `
+        <html>
+          <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
+            <style>
+              body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 20px; color: #333; }
+              h1 { color: #007aff; text-align: center; margin-bottom: 30px; }
+              table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+              th, td { border: 1px solid #ddd; padding: 12px; text-align: left; font-size: 14px; }
+              th { backgroundColor: #f8f9fa; font-weight: bold; }
+              tr:nth-child(even) { background-color: #fafafa; }
+              .footer { margin-top: 40px; text-align: center; font-size: 12px; color: #999; border-top: 1px solid #eee; padding-top: 20px; }
+              .status-hint { font-size: 12px; color: #ff453a; margin-bottom: 10px; }
+            </style>
+          </head>
+          <body>
+            <h1>脉安 (PulseGuard) 血压测量报告</h1>
+            <p style="text-align: right; font-size: 12px;">导出时间: ${new Date().toLocaleString()}</p>
+            <p class="status-hint">* 注：加粗红色数值表示超过 140/90 mmHg 警戒线</p>
+            <table>
+              <thead>
+                <tr>
+                  <th>测量时间</th>
+                  <th>血压 (mmHg)</th>
+                  <th>心率 (bpm)</th>
+                  <th>部位</th>
+                  <th>备注</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows}
+              </tbody>
+            </table>
+            <div class="footer">
+              报告由“脉安”应用自动生成。请遵医嘱，数据仅供参考。
+            </div>
+          </body>
+        </html>
+      `;
+
+      // 生成 PDF
+      const { uri } = await Print.printToFileAsync({ html: htmlContent });
+      
+      // 定制文件名
+      const now = new Date();
+      const dateStr = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}`;
+      const customName = `PulseGuard_血压报告_${dateStr}.pdf`;
+      const newUri = FileSystem.cacheDirectory + customName;
+
+      // 移动文件到新路径（带自定义名称）
+      await FileSystem.moveAsync({
+        from: uri,
+        to: newUri
       });
-      const fileName = `pulseguard_export_${Date.now()}.csv`;
-      const fileUri = FileSystem.cacheDirectory + fileName;
-      await FileSystem.writeAsStringAsync(fileUri, csvContent, { encoding: FileSystem.EncodingType.UTF8 });
+
+      // 分享文件
       if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(fileUri, { mimeType: 'text/csv', dialogTitle: '导出血压数据' });
+        await Sharing.shareAsync(newUri, { UTI: '.pdf', mimeType: 'application/pdf', dialogTitle: '分享血压报告' });
       } else {
         Alert.alert('错误', '设备不支持分享');
       }
@@ -77,7 +147,6 @@ export const useSettingsLogic = () => {
 
       const selectedFile = result.assets[0];
       
-      // 安全检查：确认文件格式
       if (!selectedFile.name.endsWith('.db')) {
         Alert.alert('错误', '请选择正确的 .db 数据库备份文件');
         return;
@@ -121,5 +190,5 @@ export const useSettingsLogic = () => {
     return await getMetadata(db, 'last_backup_time');
   };
 
-  return { exportCSV, backupDatabase, restoreDatabase, getLastBackupTime };
+  return { exportPDF, backupDatabase, restoreDatabase, getLastBackupTime };
 };
