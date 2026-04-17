@@ -80,7 +80,7 @@ export const SettingsScreen = () => {
       <View style={styles.aboutCard}>
         <ScaledText bold type="body">脉安 (PulseGuard)</ScaledText>
         <ScaledText type="caption" color={Theme.colors.textSecondary} style={{marginTop: 10}}>
-          版本：V1.1.2
+          版本：V1.2.1
         </ScaledText>
         <ScaledText type="caption" color={Theme.colors.textSecondary}>
           本应用为Ray个人作品，所有数据均存储在您的手机本地，绝不上传云端，保护隐私。
